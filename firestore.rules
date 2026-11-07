@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isCommissioner() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'clivecleary@gmail.com' ||
+        request.auth.uid == 'clive_123'
+      );
+    }
+
+    function isAuthorizedRival() {
+      return isAuthenticated() && (
+        isCommissioner() ||
+        (request.auth.token.email != null && exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email))) ||
+        exists(/databases/$(database)/documents/whitelist/$(request.auth.uid))
+      );
+    }
+
+    function isValidUser(data) {
+      return data.userId is string &&
+             data.displayName is string &&
+             data.displayName.size() > 0 &&
+             (!('email' in data) || data.email is string) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidGame(data) {
+      return data.weekNumber is number &&
+             data.awayTeamShort is string &&
+             data.homeTeamShort is string &&
+             data.homeSpread is number &&
+             (!('sportsbookProvider' in data) || data.sportsbookProvider is string) &&
+             (!('isFinal' in data) || data.isFinal is bool);
+    }
+
+    function isValidPick(data) {
+      return data.gameId is string &&
+             data.playerId is string &&
+             data.weekNumber is number &&
+             data.pickedTeamShort is string &&
+             (!('userId' in data) || data.userId is string) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // Whitelist collection for Clive, Mark, and Conor only
+    match /whitelist/{entry} {
+      allow read: if isAuthenticated();
+      allow write: if isCommissioner();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthorizedRival();
+      allow create, update: if (request.auth.uid == userId && isAuthorizedRival() && isValidUser(request.resource.data)) || isCommissioner();
+      allow delete: if isCommissioner();
+    }
+
+    match /games/{gameId} {
+      allow read: if isAuthorizedRival();
+      allow write: if isAuthorizedRival() && isValidGame(request.resource.data);
+    }
+
+    match /picks/{pickId} {
+      allow read: if isAuthorizedRival();
+      allow write: if isAuthorizedRival() && isValidPick(request.resource.data);
+    }
+  }
+}

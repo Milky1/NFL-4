@@ -1,0 +1,6 @@
+{
+  "name": "Spread Rivals",
+  "description": "Track weekly NFL against-the-spread picks, weekly winners, and historical stats with friends.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

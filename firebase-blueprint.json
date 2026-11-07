@@ -1,0 +1,148 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile for competition participant",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player name e.g. Clive, Mark, or Conor"
+        },
+        "avatarEmoji": {
+          "type": "string",
+          "description": "Emoji avatar"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        }
+      },
+      "required": ["userId", "displayName"]
+    },
+    "Game": {
+      "title": "Game",
+      "description": "NFL fixture with DraftKings point spread and final score",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique game ID"
+        },
+        "weekNumber": {
+          "type": "number",
+          "description": "NFL regular season week number"
+        },
+        "awayTeam": {
+          "type": "string",
+          "description": "Full away team name"
+        },
+        "awayTeamShort": {
+          "type": "string",
+          "description": "3-letter away team code e.g. BAL"
+        },
+        "homeTeam": {
+          "type": "string",
+          "description": "Full home team name"
+        },
+        "homeTeamShort": {
+          "type": "string",
+          "description": "3-letter home team code e.g. KC"
+        },
+        "homeSpread": {
+          "type": "number",
+          "description": "Authoritative DraftKings home team point spread"
+        },
+        "sportsbookProvider": {
+          "type": "string",
+          "description": "Sole sportsbook provider: DraftKings"
+        },
+        "gameDate": {
+          "type": "string",
+          "description": "Date of fixture e.g. Thu, Nov 7"
+        },
+        "kickoffTime": {
+          "type": "string",
+          "description": "Kickoff time e.g. 8:15 PM ET"
+        },
+        "tvNetwork": {
+          "type": "string",
+          "description": "Broadcast TV network"
+        },
+        "awayScore": {
+          "type": "number",
+          "description": "Away team score"
+        },
+        "homeScore": {
+          "type": "number",
+          "description": "Home team score"
+        },
+        "isFinal": {
+          "type": "boolean",
+          "description": "Whether game is concluded"
+        }
+      },
+      "required": ["weekNumber", "awayTeamShort", "homeTeamShort", "homeSpread", "sportsbookProvider"]
+    },
+    "Pick": {
+      "title": "Pick",
+      "description": "Against-the-spread pick for a participant",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique pick identifier"
+        },
+        "gameId": {
+          "type": "string",
+          "description": "ID of corresponding game"
+        },
+        "playerId": {
+          "type": "string",
+          "description": "Player identifier e.g. Clive, Mark, Conor"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Auth UID of the picking user"
+        },
+        "weekNumber": {
+          "type": "number",
+          "description": "Week number"
+        },
+        "pickedTeamShort": {
+          "type": "string",
+          "description": "Team picked to cover DraftKings spread"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        }
+      },
+      "required": ["gameId", "playerId", "weekNumber", "pickedTeamShort"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/Game" },
+      "description": "NFL games and DraftKings lines"
+    },
+    "/picks/{pickId}": {
+      "schema": { "$ref": "#/entities/Pick" },
+      "description": "Spread picks by Clive, Mark, and Conor"
+    }
+  }
+}
