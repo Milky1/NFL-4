@@ -329,16 +329,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                 weekNumber = _currentWeek.value,
                 pickedTeamShort = teamShort
             )
-            // Real-time Firestore cloud upload if signed in
-            if (firestoreSyncService.isUserSignedIn()) {
-                val pick = SpreadPick(
-                    gameId = gameId,
-                    playerId = targetPlayerId,
-                    weekNumber = _currentWeek.value,
-                    pickedTeamShort = teamShort
-                )
-                firestoreSyncService.uploadPick(pick, targetPlayer?.name ?: "Player")
-            }
+            val pick = SpreadPick(
+                gameId = gameId,
+                playerId = targetPlayerId,
+                weekNumber = _currentWeek.value,
+                pickedTeamShort = teamShort
+            )
+            firestoreSyncService.uploadPick(pick, targetPlayer?.name ?: "Player")
         }
     }
 
