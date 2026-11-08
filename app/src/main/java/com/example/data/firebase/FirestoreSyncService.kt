@@ -1,6 +1,7 @@
 package com.example.data.firebase
 
 import android.content.Context
+import com.example.data.db.AppDatabase
 import android.util.Log
 import com.example.R
 import com.example.data.model.NflGame
@@ -18,6 +19,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class FirestoreSyncService(context: Context) {
 
@@ -26,6 +30,7 @@ class FirestoreSyncService(context: Context) {
     )
 
     private val auth = Firebase.auth
+    private val database = AppDatabase.getDatabase(context.applicationContext)
 
     fun isUserSignedIn(): Boolean = auth.currentUser != null
 
@@ -103,7 +108,50 @@ class FirestoreSyncService(context: Context) {
             }
         }
     }
+    suspend fun syncFromFirestore() {
+        // Sync games
+        val gamesSnapshot = db.collection("games").get().await()
+        val games = gamesSnapshot.documents.map { doc ->
+            NflGame(
+                id = doc.id.toLong(),
+                weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
+                seasonYear = doc.getLong("seasonYear")?.toInt() ?: 2026,
+                awayTeam = doc.getString("awayTeam") ?: "",
+                awayTeamShort = doc.getString("awayTeamShort") ?: "",
+                homeTeam = doc.getString("homeTeam") ?: "",
+                homeTeamShort = doc.getString("homeTeamShort") ?: "",
+                homeSpread = doc.getDouble("homeSpread") ?: 0.0,
+                kickoffTime = doc.getString("kickoffTime") ?: "Sun 1:00 PM",
+                gameDate = doc.getString("gameDate") ?: "",
+                tvNetwork = doc.getString("tvNetwork") ?: "CBS",
+                venue = doc.getString("venue") ?: "",
+                sportsbookProvider = doc.getString("sportsbookProvider") ?: "DraftKings",
+                awayScore = doc.getLong("awayScore")?.toInt(),
+                homeScore = doc.getLong("homeScore")?.toInt(),
+                isFinal = doc.getBoolean("isFinal") ?: false
+            )
+        }
+        database.nflGameDao().insertAll(games)
+        // Write into Room (adjust DAO name/method to match yours)
+        // database.nflGameDao().insertAll(games)
 
+        // Sync picks
+        val picksSnapshot = db.collection("picks").get().await()
+        val picks = picksSnapshot.documents.map { doc ->
+            SpreadPick(
+                id = doc.id.toLong(),
+                gameId = doc.getLong("gameId") ?: 0L,
+                playerId = doc.getLong("playerId") ?: 0L,
+                weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
+                pickedTeamShort = doc.getString("pickedTeamShort") ?: "",
+                timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
+                firstPickTeamShort = doc.getString("firstPickTeamShort") ?: doc.getString("pickedTeamShort") ?: ""
+            )
+        }
+        database.spreadPickDao().insertAll(picks)
+// Write into Room
+// database.pickDao().insertAll(picks)
+    }
     suspend fun uploadPick(pick: SpreadPick, playerName: String) {
         val uid = auth.currentUser?.uid ?: return
         val pickDocId = "w${pick.weekNumber}_g${pick.gameId}_p${pick.playerId}"

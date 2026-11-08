@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.firebase.FirestoreSyncService
 import com.example.ui.components.PrivateLeagueGateScreen
 import com.example.ui.screens.HistoricalStatsScreen
 import com.example.ui.screens.LeagueSyncScreen
@@ -51,6 +55,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val firestoreSyncService = FirestoreSyncService(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            firestoreSyncService.syncFromFirestore()
+        }
+
         setContent {
             SpreadRivalsTheme {
                 MainApp()
