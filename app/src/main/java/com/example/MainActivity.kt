@@ -12,12 +12,15 @@ import androidx.compose.material.icons.Icons
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SportsFootball
 import androidx.compose.material.icons.filled.SportsScore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.firebase.FirestoreSyncService
@@ -53,6 +57,8 @@ import com.example.ui.viewmodel.AppTab
 import com.example.ui.viewmodel.PickEmViewModel
 
 class MainActivity : ComponentActivity() {
+    private val syncComplete = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -64,11 +70,19 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 Log.d("SYNC", "ERROR: $e")
             }
+            syncComplete.value = true
         }
 
         setContent {
             SpreadRivalsTheme {
-                MainApp()
+                val synced by syncComplete.collectAsState()
+                if (synced) {
+                    MainApp()
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
     }
