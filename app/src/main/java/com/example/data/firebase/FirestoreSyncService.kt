@@ -3,6 +3,7 @@ package com.example.data.firebase
 import android.content.Context
 import com.example.data.db.AppDatabase
 import android.util.Log
+import kotlinx.coroutines.flow.first
 import com.example.R
 import com.example.data.model.NflGame
 import com.example.data.model.SpreadPick
@@ -134,7 +135,9 @@ class FirestoreSyncService(context: Context) {
             )
         }
         database.nflGameDao().insertAll(games)
-                Log.d("SYNC", "Games written to Room: ${games.size}")
+        val verifyGames = database.nflGameDao().getAllGames().first()
+        Log.d("SYNC", "Room games after sync: ${verifyGames.size}")
+        Log.d("SYNC", "Room game scores (week 9): ${verifyGames.filter { it.weekNumber == 9 }.map { "${it.homeScore}-${it.awayScore}" }}")
         // Write into Room (adjust DAO name/method to match yours)
         // database.nflGameDao().insertAll(games)
 
@@ -153,6 +156,11 @@ class FirestoreSyncService(context: Context) {
             )
         }
         database.spreadPickDao().insertAll(picks)
+        val verify = database.spreadPickDao().getAllPicks().first()
+        Log.d("SYNC", "Room picks after sync: ${verify.size}")
+        Log.d("SYNC", "Room pick weeks: ${verify.map { it.weekNumber }}")
+        Log.d("SYNC", "Room pick playerIds: ${verify.map { it.playerId }}")
+        Log.d("SYNC", "Room pick gameIds: ${verify.map { it.gameId }}")
         Log.d("SYNC", "Picks written to Room: ${picks.size}")
 
         Log.d("SYNC", "syncFromFirestore DONE")
