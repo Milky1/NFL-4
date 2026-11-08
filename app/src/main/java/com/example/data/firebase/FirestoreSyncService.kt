@@ -144,8 +144,8 @@ class FirestoreSyncService(context: Context) {
         val picks = picksSnapshot.documents.map { doc ->
             SpreadPick(
                 id = doc.id.toLong(),
-                gameId = doc.getLong("gameId") ?: 0L,
-                playerId = doc.getLong("playerId") ?: 0L,
+                gameId = doc.getString("gameId")?.toLong() ?: 0L,
+                playerId = doc.getString("playerId")?.toLong() ?: 0L,
                 weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
                 pickedTeamShort = doc.getString("pickedTeamShort") ?: "",
                 timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
