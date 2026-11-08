@@ -138,12 +138,12 @@ class FirestoreSyncService(context: Context) {
         // Write into Room (adjust DAO name/method to match yours)
         // database.nflGameDao().insertAll(games)
 
-        // Sync picks
+// Sync picks
         val picksSnapshot = db.collection("picks").get().await()
         Log.d("SYNC", "Firestore picks: ${picksSnapshot.size()}")
         val picks = picksSnapshot.documents.map { doc ->
             SpreadPick(
-                id = doc.id.toLong(),
+                id = 0,
                 gameId = doc.getString("gameId")?.toLong() ?: 0L,
                 playerId = doc.getString("playerId")?.toLong() ?: 0L,
                 weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
@@ -156,8 +156,6 @@ class FirestoreSyncService(context: Context) {
         Log.d("SYNC", "Picks written to Room: ${picks.size}")
 
         Log.d("SYNC", "syncFromFirestore DONE")
-// Write into Room
-// database.pickDao().insertAll(picks)
     }
     suspend fun uploadPick(pick: SpreadPick, playerName: String) {
         Log.d("FIRESTORE", "uploadPick: $playerName")
