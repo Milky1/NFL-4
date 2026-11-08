@@ -160,7 +160,8 @@ class FirestoreSyncService(context: Context) {
 // database.pickDao().insertAll(picks)
     }
     suspend fun uploadPick(pick: SpreadPick, playerName: String) {
-        val uid = auth.currentUser?.uid ?: return
+        Log.d("FIRESTORE", "uploadPick: $playerName")
+        val uid = auth.currentUser?.uid ?: "anonymous"  // ← use a fallback instead of returning
         val pickDocId = "w${pick.weekNumber}_g${pick.gameId}_p${pick.playerId}"
         val doc = db.collection("picks").document(pickDocId)
         val data = mapOf(
