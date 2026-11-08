@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -375,20 +376,18 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
 
     fun saveAllChanges() {
         viewModelScope.launch {
-            if (firestoreSyncService.isUserSignedIn()) {
-                for (game in currentWeekGames.value) {
-                    val updates = mapOf(
-                        "awayScore" to (game.awayScore ?: -1),
-                        "homeScore" to (game.homeScore ?: -1),
-                        "isFinal" to game.isFinal,
-                        "homeSpread" to game.homeSpread
-                    )
-                    firestoreSyncService.updateGameDocument(game.id, updates)
-                }
-                for (pick in currentWeekPicks.value) {
-                    val player = players.value.find { it.id == pick.playerId }
-                    firestoreSyncService.uploadPick(pick, player?.name ?: "Player")
-                }
+            for (game in currentWeekGames.value) {
+                val updates = mapOf(
+                    "awayScore" to (game.awayScore ?: -1),
+                    "homeScore" to (game.homeScore ?: -1),
+                    "isFinal" to game.isFinal,
+                    "homeSpread" to game.homeSpread
+                )
+                firestoreSyncService.updateGameDocument(game.id, updates)
+            }
+            for (pick in currentWeekPicks.value) {
+                val player = players.value.find { it.id == pick.playerId }
+                firestoreSyncService.uploadPick(pick, player?.name ?: "Player")
             }
             _snackbarMessage.value = "✅ Picks, scores, spreads, and results saved & synced to Firebase successfully!"
         }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SportsFootball
 import androidx.compose.material.icons.filled.SportsScore
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import com.example.data.stats.StatsCalculator
 import com.example.data.model.AtsResult
@@ -43,6 +43,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -203,7 +204,7 @@ fun PicksScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(
-                                        imageVector = Icons.Default.TrendingUp,
+                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                         contentDescription = "Spreads",
                                         tint = StadiumGold,
                                         modifier = Modifier.size(16.dp)
@@ -1139,7 +1140,7 @@ fun EditSpreadDialog(
                                 unfocusedBorderColor = Color(0xFF334155)
                             ),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -1295,7 +1296,7 @@ fun EditSpreadDialog(
                             unfocusedBorderColor = Color(0xFF334155)
                         ),
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
@@ -1414,7 +1415,7 @@ fun AddGameDialog(
                                 unfocusedBorderColor = Color(0xFF334155)
                             ),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -1453,7 +1454,7 @@ fun AddGameDialog(
                                 unfocusedBorderColor = Color(0xFF334155)
                             ),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -1492,7 +1493,7 @@ fun AddGameDialog(
                                 unfocusedBorderColor = Color(0xFF334155)
                             ),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
                         ExposedDropdownMenu(

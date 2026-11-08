@@ -23,8 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -713,7 +713,7 @@ fun LeagueSyncScreen(
                                 .weight(1f)
                                 .testTag("copy_chat_summary_btn")
                         ) {
-                            Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Copy Chat Picks", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }

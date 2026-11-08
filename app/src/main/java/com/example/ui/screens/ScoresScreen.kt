@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -27,7 +28,6 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SportsScore
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -236,7 +236,7 @@ fun ScoresScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    imageVector = Icons.Default.TrendingUp,
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                     contentDescription = "Spreads",
                                     tint = StadiumGold,
                                     modifier = Modifier.size(16.dp)

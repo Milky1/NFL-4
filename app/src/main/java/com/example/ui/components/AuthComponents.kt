@@ -18,9 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -141,7 +141,7 @@ fun GoogleSignInCard(
                         modifier = Modifier.testTag("sign_out_btn")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Logout,
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Sign Out",
                             tint = CoralRed.copy(alpha = 0.8f)
                         )

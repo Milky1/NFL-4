@@ -87,13 +87,20 @@ class FirestoreSyncService(context: Context) {
     }
 
     suspend fun updateGameDocument(gameId: Long, updates: Map<String, Any>) {
-        if (!isUserSignedIn()) return
+        Log.d("FIRESTORE", "updateGameDocument: $gameId")
         try {
             val doc = db.collection("games").document(gameId.toString())
             doc.update(updates).await()
+            Log.d("FIRESTORE", "SUCCESS: $gameId")
         } catch (e: Exception) {
-            val doc = db.collection("games").document(gameId.toString())
-            doc.set(updates, SetOptions.merge()).await()
+            Log.d("FIRESTORE", "FAILED: $e")
+            try {
+                val doc = db.collection("games").document(gameId.toString())
+                doc.set(updates, SetOptions.merge()).await()
+                Log.d("FIRESTORE", "SET SUCCESS: $gameId")
+            } catch (e2: Exception) {
+                Log.d("FIRESTORE", "SET FAILED: $e2")
+            }
         }
     }
 

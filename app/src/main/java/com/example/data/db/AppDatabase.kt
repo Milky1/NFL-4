@@ -33,7 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "spread_rivals.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance
                 instance

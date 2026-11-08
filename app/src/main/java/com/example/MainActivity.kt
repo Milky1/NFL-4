@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SportsFootball
 import androidx.compose.material.icons.filled.SportsScore
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -158,7 +158,7 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                 NavigationBarItem(
                     selected = currentTab == AppTab.STATS,
                     onClick = { viewModel.selectTab(AppTab.STATS) },
-                    icon = { Icon(Icons.Default.TrendingUp, contentDescription = "Stats") },
+                    icon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = "Stats") },
                     label = { Text("Stats", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = StadiumNavy900,
