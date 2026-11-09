@@ -12,17 +12,10 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class FirestoreSyncService(context: Context) {
 
@@ -34,8 +27,6 @@ class FirestoreSyncService(context: Context) {
     private val database = AppDatabase.getDatabase(context.applicationContext)
 
     fun isUserSignedIn(): Boolean = auth.currentUser != null
-
-    fun getCurrentUser() = auth.currentUser
 
     suspend fun saveUserProfile(displayName: String) {
         val user = auth.currentUser ?: return
@@ -59,15 +50,6 @@ class FirestoreSyncService(context: Context) {
             "addedAt" to FieldValue.serverTimestamp()
         )
         doc.set(data, SetOptions.merge()).await()
-    }
-
-    suspend fun getWhitelistedEmails(): List<String> {
-        return try {
-            val snap = db.collection("whitelist").get().await()
-            snap.documents.mapNotNull { it.getString("email") }
-        } catch (e: Exception) {
-            emptyList()
-        }
     }
 
     suspend fun uploadGame(game: NflGame) {
@@ -184,33 +166,100 @@ class FirestoreSyncService(context: Context) {
     }
 
     fun observeCloudPicks(): Flow<List<SpreadPick>> = callbackFlow {
-        if (auth.currentUser == null) {
-            trySend(emptyList())
-            awaitClose { }
-            return@callbackFlow
-        }
-
         val registration = db.collection("picks")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.w("FirestoreSync", "Listen error: ${error.message}", error)
+                    Log.w("FirestoreSync", "Picks listen error: ${error.message}", error)
                     return@addSnapshotListener
                 }
+
                 if (snapshot != null) {
                     val list = snapshot.documents.mapNotNull { doc ->
                         try {
-                            val gameId = (doc.get("gameId") as? String)?.toLongOrNull() ?: (doc.get("gameId") as? Number)?.toLong() ?: return@mapNotNull null
-                            val playerId = (doc.get("playerId") as? String)?.toLongOrNull() ?: (doc.get("playerId") as? Number)?.toLong() ?: return@mapNotNull null
-                            val week = (doc.get("weekNumber") as? Number)?.toInt() ?: 10
+                            // Extract gameId regardless of whether Firestore stored it as String or Number
+                            val gameIdRaw = doc.get("gameId")
+                            val gameId = when (gameIdRaw) {
+                                is String -> gameIdRaw.toLongOrNull()
+                                is Number -> gameIdRaw.toLong()
+                                else -> null
+                            } ?: return@mapNotNull null
+
+                            // Extract playerId regardless of whether Firestore stored it as String or Number
+                            val playerIdRaw = doc.get("playerId")
+                            val playerId = when (playerIdRaw) {
+                                is String -> playerIdRaw.toLongOrNull()
+                                is Number -> playerIdRaw.toLong()
+                                else -> null
+                            } ?: return@mapNotNull null
+
+                            val week = (doc.get("weekNumber") as? Number)?.toInt()
+                                ?: (doc.getString("weekNumber"))?.toIntOrNull() ?: 1
                             val team = doc.getString("pickedTeamShort") ?: return@mapNotNull null
+
+                            // Use document ID hash or construct a stable numeric ID
+                            val uniqueId = doc.id.hashCode().toLong()
+
                             SpreadPick(
-                                id = doc.id.hashCode().toLong(),
+                                id = uniqueId,
                                 gameId = gameId,
                                 playerId = playerId,
                                 weekNumber = week,
                                 pickedTeamShort = team
                             )
                         } catch (e: Exception) {
+                            Log.e("FirestoreSync", "Failed to parse pick doc: ${doc.id}", e)
+                            null
+                        }
+                    }
+                    trySend(list)
+                }
+            }
+        awaitClose { registration.remove() }
+    }
+    fun observeCloudGames(): Flow<List<NflGame>> = callbackFlow {
+        val registration = db.collection("games")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("FirestoreSync", "Games listen error: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            val id = doc.getString("id")?.toLongOrNull() ?: doc.id.toLongOrNull() ?: return@mapNotNull null
+                            val weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1
+                            val awayTeamShort = doc.getString("awayTeamShort") ?: ""
+                            val awayTeam = doc.getString("awayTeam") ?: ""
+                            val homeTeamShort = doc.getString("homeTeamShort") ?: ""
+                            val homeTeam = doc.getString("homeTeam") ?: ""
+                            val homeSpread = doc.getDouble("homeSpread") ?: 0.0
+                            val sportsbookProvider = doc.getString("sportsbookProvider") ?: ""
+                            val gameDate = doc.getString("gameDate") ?: ""
+                            val kickoffTime = doc.getString("kickoffTime") ?: ""
+                            val tvNetwork = doc.getString("tvNetwork") ?: ""
+                            val awayScore = (doc.get("awayScore") as? Number)?.toInt()?.takeIf { it >= 0 }
+                            val homeScore = (doc.get("homeScore") as? Number)?.toInt()?.takeIf { it >= 0 }
+                            val isFinal = doc.getBoolean("isFinal") ?: false
+
+                            NflGame(
+                                id = id,
+                                weekNumber = weekNumber,
+                                awayTeamShort = awayTeamShort,
+                                awayTeam = awayTeam,
+                                homeTeamShort = homeTeamShort,
+                                homeTeam = homeTeam,
+                                homeSpread = homeSpread,
+                                sportsbookProvider = sportsbookProvider,
+                                gameDate = gameDate,
+                                kickoffTime = kickoffTime,
+                                tvNetwork = tvNetwork,
+                                awayScore = awayScore,
+                                homeScore = homeScore,
+                                isFinal = isFinal
+                            )
+                        } catch (e: Exception) {
+                            Log.e("FirestoreSync", "Failed to parse game doc: ${doc.id}", e)
                             null
                         }
                     }

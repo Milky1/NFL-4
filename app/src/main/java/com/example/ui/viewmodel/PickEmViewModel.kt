@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.util.Log
 import android.content.Context
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import androidx.core.content.edit
 
 enum class AppTab(val title: String) {
     PICKS("Picks"),
@@ -196,23 +198,44 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        Firebase.auth.addAuthStateListener { auth ->
-            _currentUser.value = auth.currentUser
-            if (auth.currentUser != null) {
-                viewModelScope.launch {
-                    firestoreSyncService.observeCloudPicks().collect { cloudPicks ->
-                        for (cp in cloudPicks) {
-                            repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
-                        }
+        viewModelScope.launch {
+            repository.ensureInitialDataLoaded()
+            val mostRecentWeek = repository.getMostRecentActiveWeek()
+            _currentWeek.value = mostRecentWeek
+        }
+
+// Games Sync
+        viewModelScope.launch {
+            firestoreSyncService.observeCloudGames().collect { cloudGames ->
+                Log.d("FirestoreSync", "Received ${cloudGames.size} games from Firestore")
+                for (game in cloudGames) {
+                    // Only update Room if Firestore actually contains valid score data
+                    if (game.awayScore != null && game.homeScore != null) {
+                        repository.updateGameScore(
+                            gameId = game.id,
+                            awayScore = game.awayScore,
+                            homeScore = game.homeScore,
+                            isFinal = game.isFinal
+                        )
+                        Log.d("FirestoreSync", "Updated score for gameId: ${game.id} (${game.awayScore} - ${game.homeScore})")
                     }
                 }
             }
         }
+
+        // Picks Sync
         viewModelScope.launch {
-            repository.ensureInitialDataLoaded()
-            // When opening the app, go to the most recent week (active week 9)
-            val mostRecentWeek = repository.getMostRecentActiveWeek()
-            _currentWeek.value = mostRecentWeek
+            firestoreSyncService.observeCloudPicks().collect { cloudPicks ->
+                Log.d("FirestoreSync", "Received ${cloudPicks.size} picks from Firestore")
+                for (cp in cloudPicks) {
+                    repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
+                    Log.d("FirestoreSync", "Saved pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
+                }
+            }
+        }
+
+        Firebase.auth.addAuthStateListener { auth ->
+            _currentUser.value = auth.currentUser
         }
     }
 
@@ -248,12 +271,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         _snackbarMessage.value = "Signed out of Firebase cloud sync"
     }
 
+    @SuppressLint("UseKtx")
     fun unlockWithPasscode(inputCode: String): Boolean {
         val trimmed = inputCode.trim()
         val currentCode = _leaguePasscode.value.trim()
         if (trimmed.equals(currentCode, ignoreCase = true) || trimmed.equals("RIVALS-CMC", ignoreCase = true)) {
             _isLeagueUnlocked.value = true
-            privacyPrefs.edit().putBoolean("league_unlocked", true).apply()
+            privacyPrefs.edit { putBoolean("league_unlocked", true) }
             _snackbarMessage.value = "🔓 Private league unlocked! Welcome to Clive, Mark & Conor's Pick'em."
             return true
         } else {
@@ -264,16 +288,17 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
 
     fun lockLeague() {
         _isLeagueUnlocked.value = false
-        privacyPrefs.edit().putBoolean("league_unlocked", false).apply()
+        privacyPrefs.edit { putBoolean("league_unlocked", false) }
         _snackbarMessage.value = "🔒 League locked. Private access enabled."
     }
 
+    @SuppressLint("UseKtx")
     fun updateAllowedEmails(mark: String, conor: String) {
         val m = mark.trim().lowercase()
         val c = conor.trim().lowercase()
         _markEmail.value = m
         _conorEmail.value = c
-        privacyPrefs.edit().putString("mark_email", m).putString("conor_email", c).apply()
+        privacyPrefs.edit { putString("mark_email", m).putString("conor_email", c) }
 
         viewModelScope.launch {
             if (m.isNotBlank()) firestoreSyncService.addEmailToWhitelist(m, "player_mark")
@@ -285,7 +310,7 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     fun updateLeaguePasscode(newCode: String) {
         val code = newCode.trim().ifBlank { "RIVALS-CMC" }
         _leaguePasscode.value = code
-        privacyPrefs.edit().putString("league_passcode", code).apply()
+        privacyPrefs.edit { putString("league_passcode", code)}
         _snackbarMessage.value = "Passcode updated to $code"
     }
 
@@ -593,7 +618,7 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        return sb.toString().trim()
+        return sb.toString()
     }
 
     fun resetToSampleData() {
