@@ -87,7 +87,7 @@ fun LeagueSyncScreen(
     conorEmail: String = "",
     onUpdateAllowedEmails: (String, String) -> Unit = { _, _ -> },
     onUpdatePasscode: (String) -> Unit = {},
-    onResetWeekFixtures: (Int) -> Unit = {},
+    onResetWeekFixtures: () -> Unit = {},
     onLockLeague: () -> Unit = {},
     onSignInSuccess: (FirebaseUser) -> Unit,
     onSignOut: () -> Unit,
@@ -926,7 +926,6 @@ fun LeagueSyncScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        // Dynamically show the current week number on the button
                         Text("Reset Week $currentWeek", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
@@ -978,17 +977,16 @@ fun LeagueSyncScreen(
             onDismissRequest = { showResetConfirmDialog = false },
             title = { Text("Reset Week $currentWeek Fixtures?") },
             text = {
-                Text("This will permanently clear all fixtures and player picks for Week $currentWeek so you can cleanly import your new schedule. Other weeks will not be affected.")
+                Text("This will permanently clear all fixtures for Week $currentWeek so you can cleanly import your new schedule.")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Call your ViewModel function that clears just this week
-                        onResetWeekFixtures(currentWeek)
+                        onResetWeekFixtures()
                         showResetConfirmDialog = false
                     }
                 ) {
-                    Text("Reset Week $currentWeek", color = CoralRed)
+                    Text("Reset", color = CoralRed)
                 }
             },
             dismissButton = {

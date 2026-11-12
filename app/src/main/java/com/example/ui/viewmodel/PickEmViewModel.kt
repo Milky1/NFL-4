@@ -205,37 +205,48 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         }
 
 // Games Sync
+// Games Sync (inside init)
         viewModelScope.launch {
             firestoreSyncService.observeCloudGames().collect { cloudGames ->
                 Log.d("FirestoreSync", "Received ${cloudGames.size} games from Firestore")
                 for (game in cloudGames) {
-                    // Only update Room if Firestore actually contains valid score data
-                    if (game.awayScore != null && game.homeScore != null) {
+
+                    // Find the local game from memory
+                    val localGame = allGames.value.find { it.id == game.id }
+
+                    // If the game doesn't exist locally at all, or if its score/data changed, update it
+                    if (localGame == null || localGame != game) {
                         repository.updateGameScore(
                             gameId = game.id,
-                            awayScore = game.awayScore,
+                            awayScore = game.awayScore, // These will work if 'game' is your NflGame model
                             homeScore = game.homeScore,
                             isFinal = game.isFinal
                         )
-                        Log.d("FirestoreSync", "Updated score for gameId: ${game.id} (${game.awayScore} - ${game.homeScore})")
+                        Log.d("FirestoreSync", "Updated score for gameId: ${game.id}")
                     }
                 }
             }
         }
+
 
         // Picks Sync
         viewModelScope.launch {
             firestoreSyncService.observeCloudPicks().collect { cloudPicks ->
                 Log.d("FirestoreSync", "Received ${cloudPicks.size} picks from Firestore")
                 for (cp in cloudPicks) {
-                    repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
-                    Log.d("FirestoreSync", "Saved pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
+
+                    // Check against your current in-memory picks list to see if it already matches
+                    val existingPick = allPicks.value.find {
+                        it.gameId == cp.gameId && it.playerId == cp.playerId
+                    }
+
+                    // Only update Room if the pick is new or the selected team is different
+                    if (existingPick == null || existingPick.pickedTeamShort != cp.pickedTeamShort) {
+                        repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
+                        Log.d("FirestoreSync", "Saved pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
+                    }
                 }
             }
-        }
-
-        Firebase.auth.addAuthStateListener { auth ->
-            _currentUser.value = auth.currentUser
         }
     }
 

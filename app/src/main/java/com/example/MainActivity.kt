@@ -313,7 +313,7 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                         onDeletePlayer = { id -> viewModel.deletePlayer(id) },
                         onExportCsv = { viewModel.exportCsv() },
                         onImportCsv = { csv -> viewModel.importCsv(csv) },
-                        onResetWeekFixtures = { week -> viewModel.deleteGamesForWeek(week) },
+                        onResetWeekFixtures = { viewModel.resetCurrentWeekFixtures() },
                         onShowMessage = { msg ->
                             // Handled via ViewModel
                         }
