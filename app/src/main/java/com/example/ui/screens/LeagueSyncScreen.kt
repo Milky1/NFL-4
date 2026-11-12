@@ -87,6 +87,7 @@ fun LeagueSyncScreen(
     conorEmail: String = "",
     onUpdateAllowedEmails: (String, String) -> Unit = { _, _ -> },
     onUpdatePasscode: (String) -> Unit = {},
+    onResetWeekFixtures: (Int) -> Unit = {},
     onLockLeague: () -> Unit = {},
     onSignInSuccess: (FirebaseUser) -> Unit,
     onSignOut: () -> Unit,
@@ -98,7 +99,6 @@ fun LeagueSyncScreen(
     onDeletePlayer: (Long) -> Unit,
     onExportCsv: () -> String,
     onImportCsv: (String) -> Unit,
-    onResetToSampleData: () -> Unit,
     onShowMessage: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -926,7 +926,8 @@ fun LeagueSyncScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Reset", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        // Dynamically show the current week number on the button
+                        Text("Reset Week $currentWeek", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -975,34 +976,29 @@ fun LeagueSyncScreen(
     if (showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showResetConfirmDialog = false },
-            title = { Text("Reset to Clive, Mark & Conor Data?", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Reset Week $currentWeek Fixtures?") },
             text = {
-                Text(
-                    "This will restore the authentic historical records for Clive, Mark, and Conor from Weeks 1-5 and active Week 10 DraftKings fixtures.",
-                    color = Color(0xFFCBD5E1),
-                    fontSize = 13.sp
-                )
+                Text("This will permanently clear all fixtures and player picks for Week $currentWeek so you can cleanly import your new schedule. Other weeks will not be affected.")
             },
             confirmButton = {
-                Button(
+                TextButton(
                     onClick = {
-                        onResetToSampleData()
+                        // Call your ViewModel function that clears just this week
+                        onResetWeekFixtures(currentWeek)
                         showResetConfirmDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CoralRed, contentColor = Color.White)
+                    }
                 ) {
-                    Text("Confirm Reset", fontWeight = FontWeight.Bold)
+                    Text("Reset Week $currentWeek", color = CoralRed)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirmDialog = false }) {
-                    Text("Cancel", color = Color(0xFF94A3B8))
+                    Text("Cancel")
                 }
-            },
-            containerColor = Color(0xFF131D31)
+            }
         )
-    }
-}
+    }}
+
 
 @Composable
 fun EditPlayerDialog(

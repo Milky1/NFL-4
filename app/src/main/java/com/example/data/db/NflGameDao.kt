@@ -46,6 +46,9 @@ interface NflGameDao {
     @Query("DELETE FROM nfl_games WHERE id = :id")
     suspend fun deleteGame(id: Long)
 
+    @Query("DELETE FROM nfl_games WHERE weekNumber = :weekNumber")
+    suspend fun deleteGamesForWeek(weekNumber: Int)
+
     @Query("SELECT COUNT(*) FROM nfl_games")
     suspend fun getGameCount(): Int
 

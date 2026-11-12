@@ -87,6 +87,7 @@ fun ScoresScreen(
     onRefreshSpreads: (Int) -> Unit = onRefreshFixturesAndSpreads,
     onUpdateSpread: (Long, Double, String) -> Unit = { _, _, _ -> },
     onClearScores: (Int) -> Unit,
+    onResetWeekFixtures: (Int) -> Unit = {},
     onSaveAll: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {

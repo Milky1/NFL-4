@@ -231,6 +231,14 @@ class PickEmRepository(private val database: AppDatabase) {
         spreadPickDao.insertAll(samplePicks)
     }
 
+    suspend fun deleteGamesForWeek(weekNumber: Int) {
+        val weekGames = nflGameDao.getGamesForWeek(weekNumber).first()
+        for (g in weekGames) {
+            spreadPickDao.deletePicksForGame(g.id)
+        }
+        nflGameDao.deleteGamesForWeek(weekNumber)
+    }
+
     suspend fun importParsedRows(rows: List<SpreadsheetExportImport.ParsedRow>) {
         val currentPlayers = allPlayers.first().toMutableList()
         val playerMap = currentPlayers.associateBy { it.name.lowercase() }.toMutableMap()

@@ -262,6 +262,7 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                         onRefreshSpreads = { week -> viewModel.refreshSpreads(week) },
                         onUpdateSpread = { gameId, newSpread, sportsbook -> viewModel.updateSpread(gameId, newSpread, sportsbook) },
                         onClearScores = { week -> viewModel.clearWeekScores(week) },
+                        onResetWeekFixtures = { week -> viewModel.deleteGamesForWeek(week) },
                         onSaveAll = { viewModel.saveAllChanges() }
                     )
                 }
@@ -312,7 +313,7 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                         onDeletePlayer = { id -> viewModel.deletePlayer(id) },
                         onExportCsv = { viewModel.exportCsv() },
                         onImportCsv = { csv -> viewModel.importCsv(csv) },
-                        onResetToSampleData = { viewModel.resetToSampleData() },
+                        onResetWeekFixtures = { week -> viewModel.deleteGamesForWeek(week) },
                         onShowMessage = { msg ->
                             // Handled via ViewModel
                         }

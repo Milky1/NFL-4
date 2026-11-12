@@ -621,11 +621,11 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         return sb.toString()
     }
 
-    fun resetToSampleData() {
+    fun resetCurrentWeekFixtures() {
+        val week = _currentWeek.value
         viewModelScope.launch {
-            repository.resetToSampleData()
-            _currentWeek.value = 10
-            _snackbarMessage.value = "League reset to Clive, Mark & Conor season data"
+            repository.deleteGamesForWeek(week)
+            _snackbarMessage.value = "🗑️ Week $week fixtures cleared. Ready for fresh CSV sync!"
         }
     }
 
@@ -650,6 +650,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                 repository.updateGameScore(game.id, null, null, isFinal = false)
             }
             _snackbarMessage.value = "Scores reset for Week $week"
+        }
+    }
+
+    fun deleteGamesForWeek(week: Int) {
+        viewModelScope.launch {
+            repository.deleteGamesForWeek(week)
+            _snackbarMessage.value = "Week $week fixtures reset"
         }
     }
 }
