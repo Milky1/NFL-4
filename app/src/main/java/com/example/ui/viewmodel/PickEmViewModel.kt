@@ -199,10 +199,15 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
-            repository.ensureInitialDataLoaded()
+            val newlySeededGames = repository.ensureInitialDataLoaded()
+            if (newlySeededGames.isNotEmpty()) {
+                firestoreSyncService.saveGamesToCloud(newlySeededGames)
+            }
+
             val mostRecentWeek = repository.getMostRecentActiveWeek()
             _currentWeek.value = mostRecentWeek
         }
+
 
 // Games Sync
 // Games Sync (inside init)
@@ -230,18 +235,17 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
 
 
         // Picks Sync
+        // Picks Sync in PickemViewModel.kt initializer
         viewModelScope.launch {
             firestoreSyncService.observeCloudPicks().collect { cloudPicks ->
                 Log.d("FirestoreSync", "Received ${cloudPicks.size} picks from Firestore")
                 for (cp in cloudPicks) {
-
-                    // Check against your current in-memory picks list to see if it already matches
                     val existingPick = allPicks.value.find {
                         it.gameId == cp.gameId && it.playerId == cp.playerId
                     }
 
-                    // Only update Room if the pick is new or the selected team is different
-                    if (existingPick == null || existingPick.pickedTeamShort != cp.pickedTeamShort) {
+                    // Case-insensitive check prevents false-positive updates due to casing differences
+                    if (existingPick == null || !existingPick.pickedTeamShort.equals(cp.pickedTeamShort, ignoreCase = true)) {
                         repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
                         Log.d("FirestoreSync", "Saved pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
                     }
@@ -356,6 +360,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     fun makePick(gameId: Long, teamShort: String) {
         val currentPlayers = players.value
         val targetPlayerId = _selectedPlayerId.value ?: currentPlayers.firstOrNull()?.id ?: return
+
+        // GUARD: If this exact pick already exists with the same team, do nothing!
+        val existingPick = allPicks.value.find { it.gameId == gameId && it.playerId == targetPlayerId }
+        if (existingPick?.pickedTeamShort.equals(teamShort, ignoreCase = true)) {
+            return
+        }
+
         val targetPlayer = currentPlayers.find { it.id == targetPlayerId }
 
         viewModelScope.launch {
@@ -376,6 +387,12 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun makePickForPlayer(gameId: Long, playerId: Long, teamShort: String) {
+        // GUARD: If this exact pick already exists for this player, do nothing!
+        val existingPick = allPicks.value.find { it.gameId == gameId && it.playerId == playerId }
+        if (existingPick?.pickedTeamShort.equals(teamShort, ignoreCase = true)) {
+            return
+        }
+
         val targetPlayer = players.value.find { it.id == playerId }
         viewModelScope.launch {
             repository.savePick(
@@ -410,13 +427,22 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     fun saveAllChanges() {
         viewModelScope.launch {
             for (game in currentWeekGames.value) {
-                val updates = mapOf(
+                val fullGameData = mapOf(
+                    "id" to game.id,
+                    "weekNumber" to game.weekNumber,
+                    "awayTeam" to game.awayTeam,
+                    "awayTeamShort" to game.awayTeamShort,
+                    "homeTeam" to game.homeTeam,
+                    "homeTeamShort" to game.homeTeamShort,
+                    "homeSpread" to game.homeSpread,
+                    "kickoffTime" to game.kickoffTime,
+                    "gameDate" to game.gameDate,
+                    "venue" to game.venue,
                     "awayScore" to (game.awayScore ?: -1),
                     "homeScore" to (game.homeScore ?: -1),
-                    "isFinal" to game.isFinal,
-                    "homeSpread" to game.homeSpread
+                    "isFinal" to game.isFinal
                 )
-                firestoreSyncService.updateGameDocument(game.id, updates)
+                firestoreSyncService.updateGameDocument(game.id, fullGameData)
             }
             for (pick in currentWeekPicks.value) {
                 val player = players.value.find { it.id == pick.playerId }
@@ -551,7 +577,17 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
                 repository.importParsedRows(parsed)
-                _snackbarMessage.value = "Imported ${parsed.size} games and picks successfully!"
+
+                // Give Room a brief moment to emit the updated list to allGames, or filter the imported weeks
+                val importedWeeks = parsed.map { it.week }.toSet()
+                kotlinx.coroutines.delay(150)
+                val gamesToSync = allGames.value.filter { it.weekNumber in importedWeeks }
+
+                if (gamesToSync.isNotEmpty()) {
+                    firestoreSyncService.saveGamesToCloud(gamesToSync)
+                }
+
+                _snackbarMessage.value = "Imported ${parsed.size} games and synced to Firebase successfully!"
             } catch (e: Exception) {
                 _snackbarMessage.value = "Failed to import CSV: ${e.message}"
             }

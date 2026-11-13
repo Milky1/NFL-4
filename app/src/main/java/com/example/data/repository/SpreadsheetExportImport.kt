@@ -63,11 +63,12 @@ object SpreadsheetExportImport {
         val header = parseCsvLine(lines[0])
         val results = mutableListOf<ParsedRow>()
 
-        // Check if extended format with Sportsbook & Date
         val hasSportsbook = header.any { it.equals("Sportsbook", ignoreCase = true) }
+        val isScheduleFormat = header.any { it.equals("KickoffTime", ignoreCase = true) || it.equals("GameDate", ignoreCase = true) }
+
         val sbIdx = header.indexOfFirst { it.equals("Sportsbook", ignoreCase = true) }
-        val dateIdx = header.indexOfFirst { it.equals("Date", ignoreCase = true) }
-        val timeIdx = header.indexOfFirst { it.equals("Time", ignoreCase = true) }
+        val dateIdx = header.indexOfFirst { it.equals("Date", ignoreCase = true) || it.equals("GameDate", ignoreCase = true) }
+        val timeIdx = header.indexOfFirst { it.equals("Time", ignoreCase = true) || it.equals("KickoffTime", ignoreCase = true) }
         val tvIdx = header.indexOfFirst { it.equals("TV", ignoreCase = true) }
 
         for (i in 1 until lines.size) {
@@ -77,8 +78,8 @@ object SpreadsheetExportImport {
             if (parts.size >= 4) {
                 try {
                     val week = parts[0].toIntOrNull() ?: 1
-                    val away = parts[1].trim()
-                    val home = parts[2].trim()
+                    val away = teamNameToShort(parts[1].trim())
+                    val home = teamNameToShort(parts[2].trim())
                     val spread = parts[3].toDoubleOrNull() ?: 0.0
 
                     var sportsbook = "DraftKings"
@@ -91,7 +92,11 @@ object SpreadsheetExportImport {
                     var isFinal = false
                     val playerPicks = mutableMapOf<String, String>()
 
-                    if (hasSportsbook && sbIdx >= 0 && parts.size > sbIdx) {
+                    if (isScheduleFormat && !hasSportsbook) {
+                        // 7-column schedule CSV: Week,AwayTeam,HomeTeam,HomeSpread,KickoffTime,GameDate,Venue
+                        time = if (timeIdx >= 0) parts.getOrNull(timeIdx)?.ifBlank { "1:00 PM ET" } ?: "1:00 PM ET" else "1:00 PM ET"
+                        date = if (dateIdx >= 0) parts.getOrNull(dateIdx)?.ifBlank { "Sunday" } ?: "Sunday" else "Sunday"
+                    } else if (hasSportsbook && sbIdx >= 0 && parts.size > sbIdx) {
                         sportsbook = parts.getOrNull(sbIdx)?.ifBlank { "DraftKings" } ?: "DraftKings"
                         date = if (dateIdx >= 0) parts.getOrNull(dateIdx)?.ifBlank { "Sunday" } ?: "Sunday" else "Sunday"
                         time = if (timeIdx >= 0) parts.getOrNull(timeIdx)?.ifBlank { "1:00 PM ET" } ?: "1:00 PM ET" else "1:00 PM ET"
@@ -148,6 +153,46 @@ object SpreadsheetExportImport {
             }
         }
         return results
+    }
+
+    private fun teamNameToShort(input: String): String {
+        val cleaned = input.trim()
+        if (cleaned.length <= 3) return cleaned.uppercase()
+        return when (cleaned.lowercase()) {
+            "arizona cardinals" -> "ARI"
+            "atlanta falcons" -> "ATL"
+            "baltimore ravens" -> "BAL"
+            "buffalo bills" -> "BUF"
+            "carolina panthers" -> "CAR"
+            "chicago bears" -> "CHI"
+            "cincinnati bengals" -> "CIN"
+            "cleveland browns" -> "CLE"
+            "dallas cowboys" -> "DAL"
+            "denver broncos" -> "DEN"
+            "detroit lions" -> "DET"
+            "green bay packers" -> "GB"
+            "houston texans" -> "HOU"
+            "indianapolis colts" -> "IND"
+            "jacksonville jaguars" -> "JAX"
+            "kansas city chiefs" -> "KC"
+            "las vegas raiders" -> "LV"
+            "los angeles chargers" -> "LAC"
+            "los angeles rams" -> "LAR"
+            "miami dolphins" -> "MIA"
+            "minnesota vikings" -> "MIN"
+            "new england patriots" -> "NE"
+            "new orleans saints" -> "NO"
+            "new york giants" -> "NYG"
+            "new york jets" -> "NYJ"
+            "philadelphia eagles" -> "PHI"
+            "pittsburgh steelers" -> "PIT"
+            "san francisco 49ers" -> "SF"
+            "seattle seahawks" -> "SEA"
+            "tampa bay buccaneers" -> "TB"
+            "tennessee titans" -> "TEN"
+            "washington commanders" -> "WAS"
+            else -> cleaned.uppercase()
+        }
     }
 
     private fun escapeCsv(str: String): String {

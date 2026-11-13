@@ -77,18 +77,43 @@ class FirestoreSyncService(context: Context) {
     suspend fun updateGameDocument(gameId: Long, updates: Map<String, Any>) {
         Log.d("FIRESTORE", "updateGameDocument: $gameId")
         try {
-            val doc = db.collection("games").document(gameId.toString())
-            doc.update(updates).await()
+            db.collection("games").document(gameId.toString())
+                .set(updates, SetOptions.merge())
+                .await()
             Log.d("FIRESTORE", "SUCCESS: $gameId")
         } catch (e: Exception) {
-            Log.d("FIRESTORE", "FAILED: $e")
-            try {
-                val doc = db.collection("games").document(gameId.toString())
-                doc.set(updates, SetOptions.merge()).await()
-                Log.d("FIRESTORE", "SET SUCCESS: $gameId")
-            } catch (e2: Exception) {
-                Log.d("FIRESTORE", "SET FAILED: $e2")
+            Log.e("FIRESTORE", "FAILED: $gameId", e)
+        }
+    }
+
+    suspend fun saveGamesToCloud(games: List<NflGame>) {
+        try {
+            games.forEach { game ->
+                val data = mapOf(
+                    "id" to game.id.toString(),
+                    "weekNumber" to game.weekNumber,
+                    "seasonYear" to game.seasonYear,
+                    "awayTeamShort" to game.awayTeamShort,
+                    "awayTeam" to game.awayTeam,
+                    "homeTeamShort" to game.homeTeamShort,
+                    "homeTeam" to game.homeTeam,
+                    "homeSpread" to game.homeSpread,
+                    "sportsbookProvider" to game.sportsbookProvider,
+                    "gameDate" to game.gameDate,
+                    "kickoffTime" to game.kickoffTime,
+                    "tvNetwork" to game.tvNetwork,
+                    "venue" to game.venue,
+                    "awayScore" to (game.awayScore ?: -1),
+                    "homeScore" to (game.homeScore ?: -1),
+                    "isFinal" to game.isFinal
+                )
+                db.collection("games").document(game.id.toString())
+                    .set(data, SetOptions.merge())
+                    .await()
             }
+            Log.d("FIRESTORE", "Successfully synced ${games.size} games to cloud")
+        } catch (e: Exception) {
+            Log.e("FIRESTORE", "Failed to save games to cloud: ${e.message}", e)
         }
     }
     suspend fun syncFromFirestore() {
@@ -227,7 +252,10 @@ class FirestoreSyncService(context: Context) {
                 if (snapshot != null) {
                     val list = snapshot.documents.mapNotNull { doc ->
                         try {
-                            val id = doc.getString("id")?.toLongOrNull() ?: doc.id.toLongOrNull() ?: return@mapNotNull null
+                            val id = (doc.get("id") as? Number)?.toLong()
+                                ?: doc.getString("id")?.toLongOrNull()
+                                ?: doc.id.toLongOrNull()
+                                ?: return@mapNotNull null
                             val weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1
                             val awayTeamShort = doc.getString("awayTeamShort") ?: ""
                             val awayTeam = doc.getString("awayTeam") ?: ""

@@ -21,58 +21,24 @@ class PickEmRepository(private val database: AppDatabase) {
     fun getGamesForWeek(weekNumber: Int): Flow<List<NflGame>> = nflGameDao.getGamesForWeek(weekNumber)
     fun getPicksForWeek(weekNumber: Int): Flow<List<SpreadPick>> = spreadPickDao.getPicksForWeek(weekNumber)
 
-    suspend fun ensureInitialDataLoaded() {
-        // Ensure Clive, Mark, and Conor have 'C', 'M', 'CO'
+    suspend fun ensureInitialDataLoaded(): List<NflGame> {
         playerDao.insertAll(DefaultNflData.initialPlayers)
 
         val allExisting = nflGameDao.getAllGames().first()
-        val hasCorrectWeek1 = allExisting.any { it.weekNumber == 1 && it.awayTeamShort == "NE" && it.homeTeamShort == "SEA" && it.homeSpread == -3.5 }
-        val hasCorrectWeek2 = allExisting.any { it.weekNumber == 2 && it.awayTeamShort == "DET" && it.homeTeamShort == "BUF" && it.homeSpread == -4.5 }
-        val hasCorrectWeek2Car = allExisting.any { it.weekNumber == 2 && it.awayTeamShort == "CAR" && it.homeTeamShort == "ATL" && it.homeSpread == 2.5 }
-        val hasCorrectWeek3 = allExisting.any { it.weekNumber == 3 && it.awayTeamShort == "ATL" && it.homeTeamShort == "GB" && it.homeSpread == -5.5 }
-        val hasCorrectWeek3Car = allExisting.any { it.weekNumber == 3 && it.awayTeamShort == "CAR" && it.homeTeamShort == "CLE" && it.homeSpread == 2.5 }
-        val hasCorrectWeek4 = allExisting.any { it.weekNumber == 4 && it.awayTeamShort == "PIT" && it.homeTeamShort == "CLE" && it.homeSpread == 2.5 }
-        val hasCorrectWeek4Ind = allExisting.any { it.weekNumber == 4 && it.awayTeamShort == "IND" && it.homeTeamShort == "WAS" && it.homeSpread == 3.5 }
-        val hasCorrectWeek5 = allExisting.any { it.weekNumber == 5 && it.awayTeamShort == "TB" && it.homeTeamShort == "DAL" && it.homeSpread == -8.5 }
-        val hasCorrectWeek5Phi = allExisting.any { it.weekNumber == 5 && it.awayTeamShort == "PHI" && it.homeTeamShort == "JAX" && it.homeSpread == -7.5 }
-        val hasCorrectWeek6 = allExisting.any { it.weekNumber == 6 && it.awayTeamShort == "SEA" && it.homeTeamShort == "DEN" && it.homeSpread == 2.5 }
-        val hasCorrectWeek6Hou = allExisting.any { it.weekNumber == 6 && it.awayTeamShort == "HOU" && it.homeTeamShort == "JAX" && it.homeSpread == -2.5 }
-        val hasCorrectWeek7 = allExisting.any { it.weekNumber == 7 && it.awayTeamShort == "NE" && it.homeTeamShort == "CHI" && it.homeSpread == -3.0 }
-        val hasCorrectWeek7Pit = allExisting.any { it.weekNumber == 7 && it.awayTeamShort == "PIT" && it.homeTeamShort == "NO" && it.homeSpread == 3.0 }
-        val hasCorrectWeek8 = allExisting.any { it.weekNumber == 8 && it.awayTeamShort == "CAR" && it.homeTeamShort == "GB" && it.homeSpread == -3.5 }
-        val hasCorrectWeek8Dal = allExisting.any { it.weekNumber == 8 && it.awayTeamShort == "ARI" && it.homeTeamShort == "DAL" && it.homeSpread == -7.0 }
-        val hasCorrectWeek9 = allExisting.any { it.weekNumber == 9 && it.awayTeamShort == "JAX" && it.homeTeamShort == "BAL" && it.homeSpread == 10.0 }
-        val hasCorrectWeek9Cin = allExisting.any { it.weekNumber == 9 && it.awayTeamShort == "CIN" && it.homeTeamShort == "ATL" && it.homeSpread == 3.0 }
-        val has17Weeks = allExisting.map { it.weekNumber }.distinct().size >= 17
-        val week9Picks = spreadPickDao.getPicksForWeek(9).first()
-        val hasCleanWeek9 = week9Picks.isEmpty()
-        val week2Picks = spreadPickDao.getPicksForWeek(2).first()
-        val hasUpdatedWeek2Picks = week2Picks.size == 48
-        val week3Picks = spreadPickDao.getPicksForWeek(3).first()
-        val hasUpdatedWeek3Picks = week3Picks.size == 48
-        val week4Picks = spreadPickDao.getPicksForWeek(4).first()
-        val hasUpdatedWeek4Picks = week4Picks.size == 48
-        val week5Picks = spreadPickDao.getPicksForWeek(5).first()
-        val hasUpdatedWeek5Picks = week5Picks.size == 45
-        val week6Picks = spreadPickDao.getPicksForWeek(6).first()
-        val hasUpdatedWeek6Picks = week6Picks.size == 42
-        val week7Picks = spreadPickDao.getPicksForWeek(7).first()
-        val hasUpdatedWeek7Picks = week7Picks.size == 42
-        val week8Picks = spreadPickDao.getPicksForWeek(8).first()
-        val hasUpdatedWeek8Picks = week8Picks.size == 42
 
-        val hasFullSlates = allExisting.size >= 200 && hasCorrectWeek1 && hasCorrectWeek2 && hasCorrectWeek2Car && hasCorrectWeek3 && hasCorrectWeek3Car && hasCorrectWeek4 && hasCorrectWeek4Ind && hasCorrectWeek5 && hasCorrectWeek5Phi && hasCorrectWeek6 && hasCorrectWeek6Hou && hasCorrectWeek7 && hasCorrectWeek7Pit && hasCorrectWeek8 && hasCorrectWeek8Dal && hasCorrectWeek9 && hasCorrectWeek9Cin && has17Weeks && hasCleanWeek9 && hasUpdatedWeek2Picks && hasUpdatedWeek3Picks && hasUpdatedWeek4Picks && hasUpdatedWeek5Picks && hasUpdatedWeek6Picks && hasUpdatedWeek7Picks && hasUpdatedWeek8Picks
-
-        if (!hasFullSlates) {
-            spreadPickDao.deleteAllPicks()
-            nflGameDao.deleteAllGames()
-
-            val sampleGames = DefaultNflData.getSampleGames()
+        if (allExisting.isEmpty()) {
+            val sampleGames = DefaultNflData.getSampleGames().filter { it.weekNumber <= 8 }
             nflGameDao.insertAll(sampleGames)
+
             val insertedGames = nflGameDao.getAllGames().first()
-            val samplePicks = DefaultNflData.getSamplePicks(insertedGames)
+
+            val samplePicks = DefaultNflData.getSamplePicks(insertedGames).filter { it.weekNumber <= 8 }
             spreadPickDao.insertAll(samplePicks)
+
+            return insertedGames
         }
+
+        return emptyList()
     }
 
     suspend fun getMostRecentActiveWeek(): Int {
