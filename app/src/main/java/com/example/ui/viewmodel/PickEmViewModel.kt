@@ -219,11 +219,17 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                     // Find the local game from memory
                     val localGame = allGames.value.find { it.id == game.id }
 
-                    // If the game doesn't exist locally at all, or if its score/data changed, update it
-                    if (localGame == null || localGame != game) {
+                    // GUARD: Only update if scores, final status, or spreads actually differ
+                    val hasChanged = localGame == null ||
+                            localGame.awayScore != game.awayScore ||
+                            localGame.homeScore != game.homeScore ||
+                            localGame.isFinal != game.isFinal ||
+                            localGame.homeSpread != game.homeSpread
+
+                    if (hasChanged) {
                         repository.updateGameScore(
                             gameId = game.id,
-                            awayScore = game.awayScore, // These will work if 'game' is your NflGame model
+                            awayScore = game.awayScore,
                             homeScore = game.homeScore,
                             isFinal = game.isFinal
                         )

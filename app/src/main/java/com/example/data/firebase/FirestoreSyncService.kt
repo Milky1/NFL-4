@@ -15,6 +15,7 @@ import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 class FirestoreSyncService(context: Context) {
@@ -240,7 +241,7 @@ class FirestoreSyncService(context: Context) {
                 }
             }
         awaitClose { registration.remove() }
-    }
+    }.distinctUntilChanged()
     fun observeCloudGames(): Flow<List<NflGame>> = callbackFlow {
         val registration = db.collection("games")
             .addSnapshotListener { snapshot, error ->
@@ -295,5 +296,5 @@ class FirestoreSyncService(context: Context) {
                 }
             }
         awaitClose { registration.remove() }
-    }
+    }.distinctUntilChanged()
 }
