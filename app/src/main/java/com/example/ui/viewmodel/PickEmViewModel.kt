@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 import androidx.core.content.edit
+import com.example.data.model.NflTeams
 
 enum class AppTab(val title: String) {
     PICKS("Picks"),
@@ -516,7 +517,8 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         sportsbookProvider: String = "DraftKings"
     ) {
         viewModelScope.launch {
-            repository.addCustomGame(
+            // 1. Insert into Room and capture the collision-free ID (e.g., 101)
+            val newId = repository.addCustomGame(
                 weekNumber,
                 awayTeamShort,
                 homeTeamShort,
@@ -525,9 +527,30 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                 gameDate,
                 tvNetwork,
                 venue,
-                "DraftKings"
+                sportsbookProvider
             )
-            _snackbarMessage.value = "DraftKings fixture added to Week $weekNumber"
+
+            // 2. Upload the exact same game (with newId) to Firestore
+            val awayTeam = NflTeams.getByCode(awayTeamShort)
+            val homeTeam = NflTeams.getByCode(homeTeamShort)
+            val newGame = NflGame(
+                id = newId,
+                weekNumber = weekNumber,
+                awayTeam = awayTeam.fullName,
+                awayTeamShort = awayTeamShort.uppercase(),
+                homeTeam = homeTeam.fullName,
+                homeTeamShort = homeTeamShort.uppercase(),
+                homeSpread = homeSpread,
+                kickoffTime = kickoffTime,
+                gameDate = gameDate,
+                tvNetwork = tvNetwork,
+                venue = venue,
+                sportsbookProvider = sportsbookProvider,
+                isFinal = false
+            )
+            firestoreSyncService.uploadGame(newGame)
+
+            _snackbarMessage.value = "$sportsbookProvider fixture added to Week $weekNumber"
         }
     }
 

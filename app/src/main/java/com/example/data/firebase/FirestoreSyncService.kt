@@ -68,6 +68,7 @@ class FirestoreSyncService(context: Context) {
             "gameDate" to game.gameDate,
             "kickoffTime" to game.kickoffTime,
             "tvNetwork" to game.tvNetwork,
+            "venue" to game.venue,
             "awayScore" to (game.awayScore ?: -1),
             "homeScore" to (game.homeScore ?: -1),
             "isFinal" to game.isFinal
@@ -119,59 +120,59 @@ class FirestoreSyncService(context: Context) {
     }
     suspend fun syncFromFirestore() {
         Log.d("SYNC", "syncFromFirestore START")
-        // Sync games
-        val gamesSnapshot = db.collection("games").get().await()
-        Log.d("SYNC", "Firestore games: ${gamesSnapshot.size()}")
-        val games = gamesSnapshot.documents.map { doc ->
-            NflGame(
-                id = doc.id.toLong(),
-                weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
-                seasonYear = doc.getLong("seasonYear")?.toInt() ?: 2026,
-                awayTeam = doc.getString("awayTeam") ?: "",
-                awayTeamShort = doc.getString("awayTeamShort") ?: "",
-                homeTeam = doc.getString("homeTeam") ?: "",
-                homeTeamShort = doc.getString("homeTeamShort") ?: "",
-                homeSpread = doc.getDouble("homeSpread") ?: 0.0,
-                kickoffTime = doc.getString("kickoffTime") ?: "Sun 1:00 PM",
-                gameDate = doc.getString("gameDate") ?: "",
-                tvNetwork = doc.getString("tvNetwork") ?: "CBS",
-                venue = doc.getString("venue") ?: "",
-                sportsbookProvider = doc.getString("sportsbookProvider") ?: "DraftKings",
-                awayScore = doc.getLong("awayScore")?.toInt(),
-                homeScore = doc.getLong("homeScore")?.toInt(),
-                isFinal = doc.getBoolean("isFinal") ?: false
-            )
-        }
-        database.nflGameDao().insertAll(games)
-        val verifyGames = database.nflGameDao().getAllGames().first()
-        Log.d("SYNC", "Room games after sync: ${verifyGames.size}")
-        Log.d("SYNC", "Room game scores (week 9): ${verifyGames.filter { it.weekNumber == 9 }.map { "${it.homeScore}-${it.awayScore}" }}")
-        // Write into Room (adjust DAO name/method to match yours)
-        // database.nflGameDao().insertAll(games)
+        try {
+            // 1. Sync games safely
+            val gamesSnapshot = db.collection("games").get().await()
+            Log.d("SYNC", "Firestore games: ${gamesSnapshot.size()}")
+            val games = gamesSnapshot.documents.mapNotNull { doc ->
+                val gameId = doc.id.toLongOrNull() ?: doc.getString("id")?.toLongOrNull() ?: return@mapNotNull null
+                NflGame(
+                    id = gameId,
+                    weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
+                    seasonYear = doc.getLong("seasonYear")?.toInt() ?: 2026,
+                    awayTeam = doc.getString("awayTeam") ?: "",
+                    awayTeamShort = doc.getString("awayTeamShort") ?: "",
+                    homeTeam = doc.getString("homeTeam") ?: "",
+                    homeTeamShort = doc.getString("homeTeamShort") ?: "",
+                    homeSpread = doc.getDouble("homeSpread") ?: 0.0,
+                    kickoffTime = doc.getString("kickoffTime") ?: "Sun 1:00 PM",
+                    gameDate = doc.getString("gameDate") ?: "",
+                    tvNetwork = doc.getString("tvNetwork") ?: "CBS",
+                    venue = doc.getString("venue") ?: "",
+                    sportsbookProvider = doc.getString("sportsbookProvider") ?: "DraftKings",
+                    awayScore = doc.getLong("awayScore")?.toInt()?.takeIf { it >= 0 },
+                    homeScore = doc.getLong("homeScore")?.toInt()?.takeIf { it >= 0 },
+                    isFinal = doc.getBoolean("isFinal") ?: false
+                )
+            }
+            database.nflGameDao().insertAll(games)
 
-// Sync picks
-        val picksSnapshot = db.collection("picks").get().await()
-        Log.d("SYNC", "Firestore picks: ${picksSnapshot.size()}")
-        val picks = picksSnapshot.documents.map { doc ->
-            SpreadPick(
-                id = 0,
-                gameId = doc.getString("gameId")?.toLong() ?: 0L,
-                playerId = doc.getString("playerId")?.toLong() ?: 0L,
-                weekNumber = doc.getLong("weekNumber")?.toInt() ?: 1,
-                pickedTeamShort = doc.getString("pickedTeamShort") ?: "",
-                timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
-                firstPickTeamShort = doc.getString("firstPickTeamShort") ?: doc.getString("pickedTeamShort") ?: ""
-            )
-        }
-        database.spreadPickDao().insertAll(picks)
-        val verify = database.spreadPickDao().getAllPicks().first()
-        Log.d("SYNC", "Room picks after sync: ${verify.size}")
-        Log.d("SYNC", "Room pick weeks: ${verify.map { it.weekNumber }}")
-        Log.d("SYNC", "Room pick playerIds: ${verify.map { it.playerId }}")
-        Log.d("SYNC", "Room pick gameIds: ${verify.map { it.gameId }}")
-        Log.d("SYNC", "Picks written to Room: ${picks.size}")
+            // 2. Sync picks with deterministic IDs to prevent duplicates on restart
+            val picksSnapshot = db.collection("picks").get().await()
+            Log.d("SYNC", "Firestore picks: ${picksSnapshot.size()}")
+            val picks = picksSnapshot.documents.mapNotNull { doc ->
+                val gameId = (doc.get("gameId") as? Number)?.toLong()
+                    ?: doc.getString("gameId")?.toLongOrNull()
+                    ?: return@mapNotNull null
+                val playerId = (doc.get("playerId") as? Number)?.toLong()
+                    ?: doc.getString("playerId")?.toLongOrNull()
+                    ?: return@mapNotNull null
 
-        Log.d("SYNC", "syncFromFirestore DONE")
+                SpreadPick(
+                    id = doc.id.hashCode().toLong(), // Matches observeCloudPicks() so Room updates instead of duplicating
+                    gameId = gameId,
+                    playerId = playerId,
+                    weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1,
+                    pickedTeamShort = doc.getString("pickedTeamShort") ?: "",
+                    timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
+                    firstPickTeamShort = doc.getString("firstPickTeamShort") ?: doc.getString("pickedTeamShort") ?: ""
+                )
+            }
+            database.spreadPickDao().insertAll(picks)
+            Log.d("SYNC", "syncFromFirestore DONE")
+        } catch (e: Exception) {
+            Log.e("SYNC", "syncFromFirestore FAILED: ${e.message}", e)
+        }
     }
     suspend fun uploadPick(pick: SpreadPick, playerName: String) {
         Log.d("FIRESTORE", "uploadPick: $playerName")
@@ -267,6 +268,7 @@ class FirestoreSyncService(context: Context) {
                             val gameDate = doc.getString("gameDate") ?: ""
                             val kickoffTime = doc.getString("kickoffTime") ?: ""
                             val tvNetwork = doc.getString("tvNetwork") ?: ""
+                            val venue = doc.getString("venue") ?: ""
                             val awayScore = (doc.get("awayScore") as? Number)?.toInt()?.takeIf { it >= 0 }
                             val homeScore = (doc.get("homeScore") as? Number)?.toInt()?.takeIf { it >= 0 }
                             val isFinal = doc.getBoolean("isFinal") ?: false
@@ -283,6 +285,7 @@ class FirestoreSyncService(context: Context) {
                                 gameDate = gameDate,
                                 kickoffTime = kickoffTime,
                                 tvNetwork = tvNetwork,
+                                venue = venue,
                                 awayScore = awayScore,
                                 homeScore = homeScore,
                                 isFinal = isFinal

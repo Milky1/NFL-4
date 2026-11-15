@@ -18,6 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -33,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -101,209 +105,151 @@ fun ScoresScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "ENTER & UPDATE SCORES",
-                    color = Color(0xFF94A3B8),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    letterSpacing = 0.5.sp
-                )
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ENTER & UPDATE SCORES",
+                        color = Color(0xFF94A3B8),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
 
-
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF1B2844),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3C62)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { onClearScores(currentWeek) }
-                            .testTag("clear_scores_btn")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = Color(0xFF94A3B8),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Clear",
-                                color = Color(0xFF94A3B8),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            WeekSelector(
-                availableWeeks = availableWeeks,
-                selectedWeek = currentWeek,
-                onSelectWeek = onSelectWeek
-            )
-        }
-
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("week_scores_refresh_card"),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2B45))
-            ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "WEEK $currentWeek COMMISSIONER CONTROLS",
-                            color = TurfGreen,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        // Button 1: Refresh Fixtures
-                        Button(
-                            onClick = { onRefreshFixtures(currentWeek) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1A263E),
-                                contentColor = Color.White
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8)),
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Surface(
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
+                            color = Color(0xFF1B2844),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3C62)),
                             modifier = Modifier
-                                .weight(1f)
-                                .testTag("scores_refresh_fixtures_btn")
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onClearScores(currentWeek) }
+                                .testTag("clear_scores_btn")
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Fixtures",
-                                    tint = Color(0xFF38BDF8),
-                                    modifier = Modifier.size(16.dp)
+                                    contentDescription = null,
+                                    tint = Color(0xFF94A3B8),
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Refresh\nFixtures",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF38BDF8),
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 12.sp
+                                    text = "Clear",
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-
-                        // Button 2: Refresh Spreads
-                        Button(
-                            onClick = { onRefreshSpreads(currentWeek) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF22283A),
-                                contentColor = Color.White
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("scores_refresh_spreads_btn")
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                    contentDescription = "Spreads",
-                                    tint = StadiumGold,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Refresh\nSpreads",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = StadiumGold,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 12.sp
-                                )
-                            }
-                        }
-
-
                     }
                 }
-            }
-        }
 
-        // Live Weekly Standings pill preview
-        if (weeklySummary != null && weeklySummary.playerResults.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                WeekSelector(
+                    availableWeeks = availableWeeks,
+                    selectedWeek = currentWeek,
+                    onSelectWeek = onSelectWeek
+                )
+            }
+
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2844))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("week_scores_refresh_card"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2B45))
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "WEEK $currentWeek STANDINGS",
-                            color = StadiumGold,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Column(modifier = Modifier.padding(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            for (res in weeklySummary.playerResults) {
+                            Text(
+                                text = "WEEK $currentWeek COMMISSIONER CONTROLS",
+                                color = TurfGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Button(
+                                onClick = { onRefreshFixtures(currentWeek) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1A263E),
+                                    contentColor = Color.White
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("scores_refresh_fixtures_btn")
+                            ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = res.player.avatarEmoji, fontSize = 14.sp)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = res.player.name,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Fixtures",
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = res.formattedRecord,
-                                        color = if (res.wins > res.losses) TurfGreen else Color(0xFFCBD5E1),
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 15.sp
+                                        text = "Refresh\nFixtures",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF38BDF8),
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 12.sp
                                     )
+                                }
+                            }
+
+                            Button(
+                                onClick = { onRefreshSpreads(currentWeek) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF22283A),
+                                    contentColor = Color.White
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("scores_refresh_spreads_btn")
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                        contentDescription = "Spreads",
+                                        tint = StadiumGold,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "${res.winPercentage.toInt()}% ATS",
-                                        color = Color(0xFF94A3B8),
-                                        fontSize = 10.sp
+                                        text = "Refresh\nSpreads",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = StadiumGold,
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 12.sp
                                     )
                                 }
                             }
@@ -311,69 +257,119 @@ fun ScoresScreen(
                     }
                 }
             }
-        }
 
-        if (games.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            if (weeklySummary != null && weeklySummary.playerResults.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2844))
                     ) {
-                        Text(
-                            text = "No games scheduled for Week $currentWeek",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "WEEK $currentWeek STANDINGS",
+                                color = StadiumGold,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                for (res in weeklySummary.playerResults) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = res.player.avatarEmoji, fontSize = 14.sp)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = res.player.name,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = res.formattedRecord,
+                                            color = if (res.wins > res.losses) TurfGreen else Color(0xFFCBD5E1),
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 15.sp
+                                        )
+                                        Text(
+                                            text = "${res.winPercentage.toInt()}% ATS",
+                                            color = Color(0xFF94A3B8),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-        } else {
-            items(games, key = { it.id }) { game ->
-                GameScoreCard(
-                    game = game,
-                    players = players,
-                    picks = picks.filter { it.gameId == game.id },
-                    onEditScore = { editingGameForScore = game },
-                    onEditSpread = { editingGameForSpread = game }
-                )
+
+            if (games.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No games scheduled for Week $currentWeek",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(games, key = { it.id }) { game ->
+                    GameScoreCard(
+                        game = game,
+                        players = players,
+                        picks = picks.filter { it.gameId == game.id },
+                        onEditScore = { editingGameForScore = game },
+                        onEditSpread = { editingGameForSpread = game }
+                    )
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
-        }
-    }
-
-    // Save FAB (saves picks, spreads, and results)
-    FloatingActionButton(
-        onClick = { onSaveAll() },
-        containerColor = TurfGreen,
-        contentColor = StadiumNavy900,
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(16.dp)
-            .testTag("scores_save_fab")
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+        FloatingActionButton(
+            onClick = { onSaveAll() },
+            containerColor = TurfGreen,
+            contentColor = StadiumNavy900,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .testTag("scores_save_fab")
         ) {
-            Icon(Icons.Default.Check, contentDescription = "Save", modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Save", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Check, contentDescription = "Save", modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Save", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
         }
     }
-}
 
     editingGameForScore?.let { game ->
         EditScoreDialog(
@@ -424,7 +420,6 @@ fun GameScoreCard(
         border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Unanimous Loss Highlight Banner
             if (allPlayersWrong) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -456,7 +451,6 @@ fun GameScoreCard(
                 }
             }
 
-            // Header with line and tap to edit score - tight gap for date, time, and location
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -464,7 +458,7 @@ fun GameScoreCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${game.gameDate} • ${game.kickoffTime}" + if (game.tvNetwork.isNotBlank()) " • ${game.tvNetwork}" else "",
+                        text = "${game.gameDate} ${game.kickoffTime}" + if (game.tvNetwork.isNotBlank()) " • ${game.tvNetwork}" else "",
                         color = Color(0xFFCBD5E1),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -489,7 +483,6 @@ fun GameScoreCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Edit Spread Button
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF1E2844),
@@ -517,7 +510,6 @@ fun GameScoreCard(
                         }
                     }
 
-                    // Edit Score Button
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF1E2844),
@@ -549,7 +541,6 @@ fun GameScoreCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Scoreboard view: THE AWAY TEAM FIRST (Top Row)
             ScoreboardTeamRow(
                 roleLabel = "AWAY",
                 roleColor = Color(0xFF38BDF8),
@@ -562,7 +553,6 @@ fun GameScoreCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Scoreboard view: THE HOME TEAM SECOND (Bottom Row)
             ScoreboardTeamRow(
                 roleLabel = "HOME",
                 roleColor = StadiumGold,
@@ -575,7 +565,6 @@ fun GameScoreCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Result explanation banner (larger with white text)
             if (game.isFinal && game.homeScore != null && game.awayScore != null) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -609,7 +598,6 @@ fun GameScoreCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Friend Picks & Outcomes with Winning Player Highlights
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -683,46 +671,21 @@ fun GameScoreCard(
                                         fontSize = 12.sp
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    when (outcome) {
-                                        StatsCalculator.PickOutcome.WIN -> Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Win",
-                                            tint = TurfGreen,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        StatsCalculator.PickOutcome.LOSS -> Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Loss",
-                                            tint = if (allPlayersWrong) Color(0xFFEF4444) else CoralRed,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        StatsCalculator.PickOutcome.PUSH -> Icon(
-                                            imageVector = Icons.Default.Remove,
-                                            contentDescription = "Push",
-                                            tint = StadiumGold,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        else -> {}
-                                    }
-                                }
-                                if (game.isFinal && outcome == StatsCalculator.PickOutcome.WIN) {
                                     Text(
-                                        text = "WIN",
-                                        color = TurfGreen,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 9.sp
-                                    )
-                                } else if (game.isFinal && outcome == StatsCalculator.PickOutcome.LOSS) {
-                                    Text(
-                                        text = if (allPlayersWrong) "WRONG" else "LOSS",
-                                        color = if (allPlayersWrong) Color(0xFFEF4444) else CoralRed,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 9.sp
+                                        text = when (outcome) {
+                                            StatsCalculator.PickOutcome.WIN -> "✅ WON"
+                                            StatsCalculator.PickOutcome.LOSS -> "❌ LOST"
+                                            StatsCalculator.PickOutcome.PUSH -> "➖ PUSH"
+                                            else -> ""
+                                        },
+                                        color = Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             } else {
                                 Text(
-                                    text = "No pick",
+                                    text = "No Pick",
                                     color = Color(0xFF64748B),
                                     fontSize = 10.sp
                                 )
@@ -743,96 +706,91 @@ fun ScoreboardTeamRow(
     teamName: String,
     spreadText: String,
     score: Int?,
-    isFinal: Boolean,
-    modifier: Modifier = Modifier
+    isFinal: Boolean
 ) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF182238),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF22304E)),
-        modifier = modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF0F172A))
+            .border(1.dp, Color(0xFF1E2B45), RoundedCornerShape(12.dp))
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = roleColor.copy(alpha = 0.2f),
+                modifier = Modifier.width(42.dp)
             ) {
-                TeamBadge(teamCode = teamShort, size = 30)
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = roleColor.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = roleLabel,
-                                color = roleColor,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 8.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = teamShort,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 14.sp
-                        )
-                    }
+                Text(
+                    text = roleLabel,
+                    color = roleColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            TeamBadge(teamShort = teamShort, modifier = Modifier.size(28.dp))
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column {
+                Text(
+                    text = teamName,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (score != null) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1B2844)
+                ) {
                     Text(
-                        text = teamName,
-                        color = Color(0xFF94A3B8),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = score.toString(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFF222B40)
             ) {
-                if (spreadText.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = StadiumGold.copy(alpha = 0.2f)
-                    ) {
-                        Text(
-                            text = spreadText,
-                            color = StadiumGold,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF0F172A),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
-                ) {
-                    Text(
-                        text = if (isFinal && score != null) score.toString() else "-",
-                        color = if (isFinal && score != null) Color.White else Color(0xFF64748B),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
+                Text(
+                    text = spreadText,
+                    color = StadiumGold,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditScoreDialog(
     game: NflGame,
@@ -841,111 +799,57 @@ fun EditScoreDialog(
 ) {
     var awayScoreText by remember { mutableStateOf(game.awayScore?.toString() ?: "") }
     var homeScoreText by remember { mutableStateOf(game.homeScore?.toString() ?: "") }
-    var isFinal by remember { mutableStateOf(game.isFinal) }
+    var isFinalState by remember { mutableStateOf(game.isFinal) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "${game.awayTeamShort} @ ${game.homeTeamShort}",
+                text = "Edit Score (${game.awayTeamShort} @ ${game.homeTeamShort})",
                 color = Color.White,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(
-                    text = "Spread: ${game.lineSummary}",
-                    color = StadiumGold,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = awayScoreText,
-                        onValueChange = { awayScoreText = it },
-                        label = { Text("${game.awayTeamShort} Score") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.weight(1f)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = awayScoreText,
+                    onValueChange = { awayScoreText = it },
+                    label = { Text("${game.awayTeamShort} Score") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     )
-
-                    OutlinedTextField(
-                        value = homeScoreText,
-                        onValueChange = { homeScoreText = it },
-                        label = { Text("${game.homeTeamShort} Score") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // Quick score steppers
-                Text(
-                    text = "Quick Football Points:",
-                    color = Color(0xFF94A3B8),
-                    fontSize = 11.sp
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    for (pts in listOf(3, 6, 7)) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF1E2844),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    val current = homeScoreText.toIntOrNull() ?: 0
-                                    homeScoreText = (current + pts).toString()
-                                }
-                        ) {
-                            Text(
-                                text = "+$pts ${game.homeTeamShort}",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Final Game Switch
+                OutlinedTextField(
+                    value = homeScoreText,
+                    onValueChange = { homeScoreText = it },
+                    label = { Text("${game.homeTeamShort} Score") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Mark Game as FINAL",
+                        text = "Mark Game Final",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Switch(
-                        checked = isFinal,
-                        onCheckedChange = { isFinal = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = TurfGreen,
-                            checkedTrackColor = TurfGreen.copy(alpha = 0.3f)
-                        )
+                        checked = isFinalState,
+                        onCheckedChange = { isFinalState = it },
+                        colors = SwitchDefaults.colors(checkedThumbColor = TurfGreen)
                     )
                 }
             }
@@ -955,7 +859,7 @@ fun EditScoreDialog(
                 onClick = {
                     val away = awayScoreText.toIntOrNull()
                     val home = homeScoreText.toIntOrNull()
-                    onSave(away, home, if (away != null && home != null) isFinal else false)
+                    onSave(away, home, isFinalState)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
             ) {

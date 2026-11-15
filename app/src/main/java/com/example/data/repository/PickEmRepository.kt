@@ -139,7 +139,12 @@ class PickEmRepository(private val database: AppDatabase) {
     ): Long {
         val awayTeam = NflTeams.getByCode(awayTeamShort)
         val homeTeam = NflTeams.getByCode(homeTeamShort)
+
+        // Generate a collision-free ID for this week (e.g., Week 1 = 101, 102...)
+        val uniqueId = generateUniqueGameId(weekNumber)
+
         val game = NflGame(
+            id = uniqueId,
             weekNumber = weekNumber,
             awayTeam = awayTeam.fullName,
             awayTeamShort = awayTeamShort.uppercase(),
@@ -153,7 +158,23 @@ class PickEmRepository(private val database: AppDatabase) {
             sportsbookProvider = sportsbookProvider,
             isFinal = false
         )
+
         return nflGameDao.insert(game)
+    }
+
+    // Place this directly inside your PickemRepository class (outside of addCustomGame)
+    private suspend fun generateUniqueGameId(weekNumber: Int): Long {
+        val weekPrefix = weekNumber * 100L // Week 1 -> 100, Week 2 -> 200, Week 8 -> 800
+        val existingGames = nflGameDao.getAllGames().first()
+        val maxIdInWeek = existingGames
+            .filter { it.weekNumber == weekNumber }
+            .maxOfOrNull { it.id }
+
+        return if (maxIdInWeek != null && maxIdInWeek >= weekPrefix) {
+            maxIdInWeek + 1L
+        } else {
+            weekPrefix + 1L
+        }
     }
 
     suspend fun deleteGame(gameId: Long) {
@@ -196,6 +217,7 @@ class PickEmRepository(private val database: AppDatabase) {
         val samplePicks = DefaultNflData.getSamplePicks(sampleGames)
         spreadPickDao.insertAll(samplePicks)
     }
+
 
     suspend fun deleteGamesForWeek(weekNumber: Int) {
         val weekGames = nflGameDao.getGamesForWeek(weekNumber).first()
@@ -257,5 +279,6 @@ class PickEmRepository(private val database: AppDatabase) {
                 spreadPickDao.insertOrUpdate(pick)
             }
         }
+
     }
 }

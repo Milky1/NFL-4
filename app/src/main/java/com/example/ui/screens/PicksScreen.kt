@@ -68,7 +68,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.NflGame
-import com.example.data.model.NflTeams
 import com.example.data.model.Player
 import com.example.data.model.SpreadPick
 import com.example.ui.components.HeroBanner
@@ -80,6 +79,7 @@ import com.example.ui.theme.StadiumGold
 import com.example.ui.theme.StadiumGoldLight
 import com.example.ui.theme.StadiumNavy900
 import com.example.ui.theme.TurfGreen
+import kotlin.let
 
 @Composable
 fun PicksScreen(
@@ -124,7 +124,7 @@ fun PicksScreen(
                 HeroBanner(currentWeek = currentWeek, totalPlayers = players.size)
             }
 
-            // 3 Horizontal Refresh Buttons: Refresh Fixtures, Refresh Spreads, Refresh Match Scores
+            // 3 Horizontal Refresh Buttons
             item {
                 Card(
                     modifier = Modifier
@@ -155,7 +155,6 @@ fun PicksScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Button 1: Refresh Fixtures
                             Button(
                                 onClick = { onRefreshFixtures(currentWeek) },
                                 colors = ButtonDefaults.buttonColors(
@@ -188,7 +187,6 @@ fun PicksScreen(
                                 }
                             }
 
-                            // Button 2: Refresh Spreads
                             Button(
                                 onClick = { onRefreshSpreads(currentWeek) },
                                 colors = ButtonDefaults.buttonColors(
@@ -223,7 +221,6 @@ fun PicksScreen(
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        // Lock Spreads Button
                         Button(
                             onClick = { onToggleWeekSpreadLock(currentWeek) },
                             colors = ButtonDefaults.buttonColors(
@@ -256,8 +253,6 @@ fun PicksScreen(
                                 )
                             }
                         }
-
-
                     }
                 }
             }
@@ -347,11 +342,10 @@ fun PicksScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(80.dp)) // Padding for FAB & nav bar
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
 
-        // Save FAB (saves picks, spreads, and results)
         FloatingActionButton(
             onClick = { onSaveAll() },
             containerColor = TurfGreen,
@@ -372,11 +366,10 @@ fun PicksScreen(
         }
     }
 
-    // Spread Editing Dialog
     editingGameForSpread?.let { game ->
         EditSpreadDialog(
             game = game,
-            availableGames = games,
+            availableGames = games, // <-- Pass games here
             onDismiss = { editingGameForSpread = null },
             onSaveSpread = { gameId, newSpread, sportsbook ->
                 onUpdateSpread(gameId, newSpread, sportsbook)
@@ -385,7 +378,6 @@ fun PicksScreen(
         )
     }
 
-    // Add Custom Game Dialog
     if (showAddGameDialog) {
         AddGameDialog(
             currentWeek = currentWeek,
@@ -397,9 +389,6 @@ fun PicksScreen(
         )
     }
 
-
-
-    // Spread locked notice modal
     if (showLockedNoticeDialog) {
         AlertDialog(
             onDismissRequest = { showLockedNoticeDialog = false },
@@ -465,7 +454,6 @@ fun GamePickCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Unanimous Loss Highlight Banner (if all players got the same game wrong)
             if (allPlayersWrong) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -496,7 +484,6 @@ fun GamePickCard(
                     }
                 }
             } else if (game.isFinal && game.homeScore != null && game.awayScore != null) {
-                // Game is final: ATS Result Banner (Larger with white text)
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = if (atsResult == AtsResult.PUSH) Color(0xFF854D0E) else Color(0xFF0F766E),
@@ -525,7 +512,6 @@ fun GamePickCard(
                 }
             }
 
-            // Header: Fixture Date, Time, Network, and Sportsbook Line
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -574,7 +560,6 @@ fun GamePickCard(
                     }
                 }
 
-                // Sportsbook Badge & Edit Button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -615,7 +600,6 @@ fun GamePickCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // THE AWAY TEAM FIRST (Top Row)
             TeamMatchupRow(
                 roleLabel = "AWAY",
                 roleColor = Color(0xFF38BDF8),
@@ -633,7 +617,6 @@ fun GamePickCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // THE HOME TEAM SECOND (Bottom Row)
             TeamMatchupRow(
                 roleLabel = "HOME",
                 roleColor = StadiumGold,
@@ -651,7 +634,6 @@ fun GamePickCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // EACH PLAYER'S PICKS & HIGHLIGHT OUTCOMES
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = if (allPlayersWrong) Color(0xFF1D0911) else Color(0xFF182238),
@@ -688,216 +670,86 @@ fun GamePickCard(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (player in players) {
                             val playerPick = picks.find { it.playerId == player.id }
-                            val outcome = StatsCalculator.evaluatePick(game, playerPick)
+                            val pickedTeam = playerPick?.pickedTeamShort
+
+                            val playerOutcome = if (game.isFinal && pickedTeam != null) {
+                                val coverResult = game.getAtsResult()
+                                when {
+                                    coverResult == AtsResult.PUSH -> "PUSH"
+                                    coverResult == AtsResult.HOME_COVERED && pickedTeam.equals(game.homeTeamShort, ignoreCase = true) -> "WON"
+                                    coverResult == AtsResult.AWAY_COVERED && pickedTeam.equals(game.awayTeamShort, ignoreCase = true) -> "WON"
+                                    coverResult == AtsResult.PENDING -> "PENDING"
+                                    else -> "LOST"
+                                }
+                            } else null
+
+                            val outcomeBg = when (playerOutcome) {
+                                "WON" -> Color(0xFF0F766E)
+                                "LOST" -> Color(0xFF7F1D1D)
+                                "PUSH" -> Color(0xFF78350F)
+                                else -> Color(0xFF222B40)
+                            }
 
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF131D31))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Player Name and Avatar
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
+                                Text(
+                                    text = player.name,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
                                     modifier = Modifier.weight(1f)
+                                )
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color(player.avatarColorHex).copy(alpha = 0.25f),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(player.avatarColorHex)),
-                                        modifier = Modifier.size(24.dp)
+                                    Button(
+                                        onClick = { onMakePlayerPick(player.id, game.awayTeamShort) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (pickedTeam.equals(game.awayTeamShort, ignoreCase = true)) Color(0xFF38BDF8) else Color(0xFF1E2B45),
+                                            contentColor = if (pickedTeam.equals(game.awayTeamShort, ignoreCase = true)) Color(0xFF0F172A) else Color.White
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(26.dp)
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
+                                        Text(text = game.awayTeamShort, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { onMakePlayerPick(player.id, game.homeTeamShort) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (pickedTeam.equals(game.homeTeamShort, ignoreCase = true)) StadiumGold else Color(0xFF1E2B45),
+                                            contentColor = if (pickedTeam.equals(game.homeTeamShort, ignoreCase = true)) StadiumNavy900 else Color.White
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(26.dp)
+                                    ) {
+                                        Text(text = game.homeTeamShort, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    if (playerOutcome != null) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = outcomeBg
+                                        ) {
                                             Text(
-                                                text = player.symbol,
+                                                text = playerOutcome,
                                                 color = Color.White,
+                                                fontSize = 9.sp,
                                                 fontWeight = FontWeight.Black,
-                                                fontSize = if (player.symbol.length > 1) 9.sp else 11.sp
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = player.name,
-                                        color = Color(player.avatarColorHex),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
-
-                                if (game.isFinal) {
-                                    // Highlight for each player who got it correct, and highlight all wrong
-                                    when (outcome) {
-                                        StatsCalculator.PickOutcome.WIN -> {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = Color(0xFF0F3E22),
-                                                border = androidx.compose.foundation.BorderStroke(1.5.dp, TurfGreen)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Win",
-                                                        tint = TurfGreen,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = "${playerPick?.pickedTeamShort} • WIN",
-                                                        color = TurfGreen,
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = 11.sp
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        StatsCalculator.PickOutcome.LOSS -> {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = if (allPlayersWrong) Color(0xFF380C1A) else Color(0xFF1E1420),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    1.dp,
-                                                    if (allPlayersWrong) Color(0xFFEF4444) else CoralRed.copy(alpha = 0.5f)
-                                                )
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Close,
-                                                        contentDescription = "Loss",
-                                                        tint = if (allPlayersWrong) Color(0xFFEF4444) else CoralRed,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = "${playerPick?.pickedTeamShort ?: "None"} • LOSS",
-                                                        color = if (allPlayersWrong) Color(0xFFEF4444) else CoralRed,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 11.sp
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        StatsCalculator.PickOutcome.PUSH -> {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = StadiumGold.copy(alpha = 0.2f),
-                                                border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold)
-                                            ) {
-                                                Text(
-                                                    text = "${playerPick?.pickedTeamShort} • PUSH",
-                                                    color = StadiumGold,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 11.sp,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                )
-                                            }
-                                        }
-                                        else -> {
-                                            Text(
-                                                text = "No Pick",
-                                                color = Color(0xFF64748B),
-                                                fontSize = 11.sp
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    // Game is NOT final: Interactive pick toggle buttons for each player
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        // Highlight if pick changed from first pick
-                                        if (playerPick != null && playerPick.isChangedFromFirstPick) {
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = Color(0xFFF59E0B).copy(alpha = 0.2f),
-                                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B)),
-                                                modifier = Modifier.padding(bottom = 3.dp)
-                                            ) {
-                                                Text(
-                                                    text = "⚠️ Changed from 1st pick: ${playerPick.firstPickTeamShort}",
-                                                    color = Color(0xFFFBBF24),
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            val pickedAway = playerPick?.pickedTeamShort.equals(game.awayTeamShort, ignoreCase = true)
-                                            val pickedHome = playerPick?.pickedTeamShort.equals(game.homeTeamShort, ignoreCase = true)
-                                            val isChangedPick = playerPick != null && playerPick.isChangedFromFirstPick
-
-                                            // Away pick chip
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = if (pickedAway) {
-                                                    if (isChangedPick) Color(0xFFB45309).copy(alpha = 0.4f) else Color(player.avatarColorHex).copy(alpha = 0.3f)
-                                                } else Color(0xFF1E2844),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    if (pickedAway) 1.5.dp else 1.dp,
-                                                    if (pickedAway) {
-                                                        if (isChangedPick) Color(0xFFF59E0B) else Color(player.avatarColorHex)
-                                                    } else Color(0xFF283858)
-                                                ),
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .clickable { onMakePlayerPick(player.id, game.awayTeamShort) }
-                                                    .testTag("pick_${player.name}_${game.awayTeamShort}")
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = "${game.awayTeamShort} ${game.formattedAwaySpread()}".trim(),
-                                                        color = if (pickedAway) Color.White else Color(0xFF94A3B8),
-                                                        fontWeight = if (pickedAway) FontWeight.Black else FontWeight.Medium,
-                                                        fontSize = 11.sp
-                                                    )
-                                                    if (pickedAway && isChangedPick) {
-                                                        Spacer(modifier = Modifier.width(3.dp))
-                                                        Text("★", color = Color(0xFFFBBF24), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                                    }
-                                                }
-                                            }
-
-                                            // Home pick chip
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = if (pickedHome) {
-                                                    if (isChangedPick) Color(0xFFB45309).copy(alpha = 0.4f) else Color(player.avatarColorHex).copy(alpha = 0.3f)
-                                                } else Color(0xFF1E2844),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    if (pickedHome) 1.5.dp else 1.dp,
-                                                    if (pickedHome) {
-                                                        if (isChangedPick) Color(0xFFF59E0B) else Color(player.avatarColorHex)
-                                                    } else Color(0xFF283858)
-                                                ),
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .clickable { onMakePlayerPick(player.id, game.homeTeamShort) }
-                                                    .testTag("pick_${player.name}_${game.homeTeamShort}")
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = "${game.homeTeamShort} ${game.formattedHomeSpread()}".trim(),
-                                                        color = if (pickedHome) Color.White else Color(0xFF94A3B8),
-                                                        fontWeight = if (pickedHome) FontWeight.Black else FontWeight.Medium,
-                                                        fontSize = 11.sp
-                                                    )
-                                                    if (pickedHome && isChangedPick) {
-                                                        Spacer(modifier = Modifier.width(3.dp))
-                                                        Text("★", color = Color(0xFFFBBF24), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                                    }
-                                                }
-                                            }
                                         }
                                     }
                                 }
@@ -923,132 +775,116 @@ fun TeamMatchupRow(
     activePlayer: Player?,
     allPicksForTeam: List<SpreadPick>,
     players: List<Player>,
-    onPick: () -> Unit,
-    modifier: Modifier = Modifier
+    onPick: () -> Unit
 ) {
-    val activeColor = activePlayer?.let { Color(it.avatarColorHex) } ?: TurfGreen
+    val pickedPlayers = players.filter { player -> allPicksForTeam.any { it.playerId == player.id } }
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (isPickedByActive) Color(0xFF1D2E50) else Color(0xFF182238),
-        border = androidx.compose.foundation.BorderStroke(
-            if (isPickedByActive) 2.dp else 1.dp,
-            if (isPickedByActive) activeColor else Color(0xFF253350)
-        ),
-        modifier = modifier
+    Row(
+        modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .background(if (isPickedByActive) Color(0xFF1E2B45) else Color(0xFF0F172A))
+            .border(
+                width = if (isPickedByActive) 1.5.dp else 1.dp,
+                color = if (isPickedByActive) StadiumGold else Color(0xFF1E2B45),
+                shape = RoundedCornerShape(12.dp)
+            )
             .clickable { onPick() }
-            .testTag("matchup_row_${teamShort}")
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.weight(1f)
         ) {
-            // Team identity with Away / Home badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = roleColor.copy(alpha = 0.2f),
+                modifier = Modifier.width(42.dp)
             ) {
-                TeamBadge(teamCode = teamShort, size = 34)
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = roleColor.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = roleLabel,
-                                color = roleColor,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 8.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = teamShort,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 15.sp
-                        )
-                    }
+                Text(
+                    text = roleLabel,
+                    color = roleColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            TeamBadge(teamShort = teamShort, modifier = Modifier.size(28.dp))
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column {
+                Text(
+                    text = teamName,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (pickedPlayers.isNotEmpty()) {
                     Text(
-                        text = teamName,
-                        color = Color(0xFF94A3B8),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "Picked by: ${pickedPlayers.joinToString(", ") { it.name }}",
+                        color = StadiumGold,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (score != null) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1B2844)
+                ) {
+                    Text(
+                        text = score.toString(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            // Right side: Spread & Score
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFF222B40)
             ) {
-                // Friends who picked this team
-                if (allPicksForTeam.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        for (pick in allPicksForTeam) {
-                            val player = players.find { it.id == pick.playerId } ?: continue
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(player.avatarColorHex).copy(alpha = 0.3f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(player.avatarColorHex)),
-                                modifier = Modifier.size(20.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = player.symbol,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = if (player.symbol.length > 1) 8.sp else 9.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                Text(
+                    text = spreadText,
+                    color = StadiumGold,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
 
-                // Spread Badge (only for the favorite)
-                if (spreadText.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = StadiumGold.copy(alpha = 0.2f)
-                    ) {
-                        Text(
-                            text = spreadText,
-                            color = StadiumGold,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-                }
-
-                // Final Game Score if concluded
-                if (isFinal && score != null) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF0F172A),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
-                    ) {
-                        Text(
-                            text = score.toString(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (isPickedByActive) StadiumGold else Color(0xFF1E2B45)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isPickedByActive) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Picked",
+                        tint = StadiumNavy900,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
         }
@@ -1063,291 +899,52 @@ fun EditSpreadDialog(
     onDismiss: () -> Unit,
     onSaveSpread: (Long, Double, String) -> Unit
 ) {
-    var currentGame by remember(game) { mutableStateOf(game) }
-    var gameExpanded by remember { mutableStateOf(false) }
-
-    // Favorite: "AWAY", "HOME", "EVEN"
-    val initialFav = when {
-        currentGame.homeSpread > 0 -> "AWAY"
-        currentGame.homeSpread < 0 -> "HOME"
-        else -> "EVEN"
-    }
-    var selectedFavorite by remember(currentGame) { mutableStateOf(initialFav) }
-
-    val initialPoints = when {
-        currentGame.homeSpread != 0.0 -> String.format(java.util.Locale.US, "%.1f", kotlin.math.abs(currentGame.homeSpread))
-        else -> "0.0"
-    }
-    var pointsText by remember(currentGame) { mutableStateOf(initialPoints) }
-    var selectedSportsbook by remember(currentGame) { mutableStateOf(currentGame.sportsbookProvider) }
-    var sportsbookExpanded by remember { mutableStateOf(false) }
-
-    val sportsbooks = listOf("DraftKings", "FanDuel", "BetMGM", "Caesars", "ESPN BET", "Manual Entry")
-
-    // Calculated homeSpread
-    val calculatedHomeSpread = remember(selectedFavorite, pointsText) {
-        val pts = pointsText.toDoubleOrNull() ?: 0.0
-        val absPts = kotlin.math.abs(pts)
-        when (selectedFavorite) {
-            "AWAY" -> absPts
-            "HOME" -> -absPts
-            else -> 0.0
-        }
-    }
-
-    val previewText = remember(currentGame, selectedFavorite, pointsText, selectedSportsbook) {
-        val pts = pointsText.toDoubleOrNull() ?: 0.0
-        val absPts = kotlin.math.abs(pts)
-        val line = when (selectedFavorite) {
-            "AWAY" -> "${currentGame.awayTeamShort} -${String.format(java.util.Locale.US, "%.1f", absPts)}"
-            "HOME" -> "${currentGame.homeTeamShort} -${String.format(java.util.Locale.US, "%.1f", absPts)}"
-            else -> "PICK'EM (0.0)"
-        }
-        "$line ($selectedSportsbook)"
-    }
+    var spreadText by remember { mutableStateOf(game.homeSpread.toString()) }
+    var sportsbook by remember { mutableStateOf(game.sportsbookProvider.ifBlank { "DraftKings" }) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Edit, contentDescription = null, tint = StadiumGold, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Edit Spread / Manual Line",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp
-                )
-            }
+            Text(
+                text = "Edit Spread (${game.awayTeamShort} @ ${game.homeTeamShort})",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (availableGames.size > 1) {
-                    ExposedDropdownMenuBox(
-                        expanded = gameExpanded,
-                        onExpandedChange = { gameExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = "${currentGame.awayTeamShort} @ ${currentGame.homeTeamShort} (${currentGame.lineSummary})",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Select Matchup") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gameExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = TurfGreen,
-                                unfocusedBorderColor = Color(0xFF334155)
-                            ),
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = gameExpanded,
-                            onDismissRequest = { gameExpanded = false }
-                        ) {
-                            availableGames.forEach { g ->
-                                DropdownMenuItem(
-                                    text = { Text("${g.awayTeamShort} @ ${g.homeTeamShort} (${g.lineSummary})") },
-                                    onClick = {
-                                        currentGame = g
-                                        gameExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "${currentGame.awayTeam} @ ${currentGame.homeTeam}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                OutlinedTextField(
+                    value = spreadText,
+                    onValueChange = { spreadText = it },
+                    label = { Text("${game.homeTeamShort} Spread") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     )
-                }
-
-                // Who is favored?
-                Text(
-                    text = "WHO IS FAVORED?",
-                    color = Color(0xFF94A3B8),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedFavorite == "AWAY") TurfGreen else Color(0xFF1B2844),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedFavorite == "AWAY") TurfGreen else Color(0xFF334155)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { selectedFavorite = "AWAY" }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "${currentGame.awayTeamShort} (-)",
-                                color = if (selectedFavorite == "AWAY") StadiumNavy900 else Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "AWAY",
-                                color = if (selectedFavorite == "AWAY") StadiumNavy900 else Color(0xFF94A3B8),
-                                fontSize = 9.sp
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedFavorite == "HOME") TurfGreen else Color(0xFF1B2844),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedFavorite == "HOME") TurfGreen else Color(0xFF334155)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { selectedFavorite = "HOME" }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "${currentGame.homeTeamShort} (-)",
-                                color = if (selectedFavorite == "HOME") StadiumNavy900 else Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "HOME",
-                                color = if (selectedFavorite == "HOME") StadiumNavy900 else Color(0xFF94A3B8),
-                                fontSize = 9.sp
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedFavorite == "EVEN") StadiumGold else Color(0xFF1B2844),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedFavorite == "EVEN") StadiumGold else Color(0xFF334155)),
-                        modifier = Modifier
-                            .weight(0.8f)
-                            .clickable {
-                                selectedFavorite = "EVEN"
-                                pointsText = "0.0"
-                            }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "EVEN",
-                                color = if (selectedFavorite == "EVEN") StadiumNavy900 else Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "PK (0.0)",
-                                color = if (selectedFavorite == "EVEN") StadiumNavy900 else Color(0xFF94A3B8),
-                                fontSize = 9.sp
-                            )
-                        }
-                    }
-                }
-
-                if (selectedFavorite != "EVEN") {
-                    OutlinedTextField(
-                        value = pointsText,
-                        onValueChange = { pointsText = it },
-                        label = { Text("Spread Points (e.g. 10.0 or 3.5)") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("spread_points_input")
+                OutlinedTextField(
+                    value = sportsbook,
+                    onValueChange = { sportsbook = it },
+                    label = { Text("Sportsbook") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     )
-                }
-
-                // Sportsbook Provider Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = sportsbookExpanded,
-                    onExpandedChange = { sportsbookExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedSportsbook,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Sportsbook / Provider") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sportsbookExpanded) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = sportsbookExpanded,
-                        onDismissRequest = { sportsbookExpanded = false }
-                    ) {
-                        sportsbooks.forEach { book ->
-                            DropdownMenuItem(
-                                text = { Text(book) },
-                                onClick = {
-                                    selectedSportsbook = book
-                                    sportsbookExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Live Preview Banner
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = StadiumGold.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Text(
-                            text = "PREVIEW (ALWAYS MINUS NOTATION):",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = previewText,
-                            color = StadiumGoldLight,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onSaveSpread(currentGame.id, calculatedHomeSpread, selectedSportsbook)
+                    val parsed = spreadText.toDoubleOrNull() ?: game.homeSpread
+                    onSaveSpread(game.id, parsed, sportsbook)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900),
-                modifier = Modifier.testTag("save_spread_btn")
+                colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
             ) {
-                Text("Save Spread", fontWeight = FontWeight.Bold)
+                Text("Save Line", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -1366,243 +963,136 @@ fun AddGameDialog(
     onDismiss: () -> Unit,
     onAddGame: (Int, String, String, Double, String, String, String, String, String) -> Unit
 ) {
-    val allTeams = NflTeams.teams
-    var awayCode by remember { mutableStateOf("DAL") }
-    var homeCode by remember { mutableStateOf("PHI") }
+    var awayTeam by remember { mutableStateOf("") }
+    var homeTeam by remember { mutableStateOf("") }
     var spreadText by remember { mutableStateOf("-3.5") }
-    var selectedSportsbook by remember { mutableStateOf("DraftKings") }
-    var gameDate by remember { mutableStateOf("Sun, Nov 10") }
-    var kickoffTime by remember { mutableStateOf("1:00 PM ET") }
+    var kickoffTime by remember { mutableStateOf("1:00 PM") }
+    var gameDate by remember { mutableStateOf("Sunday") }
     var tvNetwork by remember { mutableStateOf("CBS") }
     var venue by remember { mutableStateOf("") }
-
-    var awayExpanded by remember { mutableStateOf(false) }
-    var homeExpanded by remember { mutableStateOf(false) }
-    var sportsbookExpanded by remember { mutableStateOf(false) }
-
-    val sportsbooks = listOf("DraftKings", "FanDuel", "BetMGM", "Caesars", "ESPN BET", "Consensus")
+    var sportsbook by remember { mutableStateOf("DraftKings") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Add Fixture to Week $currentWeek",
+                text = "Add Week $currentWeek Fixture",
                 color = Color.White,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
             )
         },
         text = {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                item {
-                    // Away Team Selector
-                    ExposedDropdownMenuBox(
-                        expanded = awayExpanded,
-                        onExpandedChange = { awayExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = "${NflTeams.getByCode(awayCode).fullName} ($awayCode)",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Away Team") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = awayExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = TurfGreen,
-                                unfocusedBorderColor = Color(0xFF334155)
-                            ),
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = awayTeam,
+                        onValueChange = { awayTeam = it.uppercase() },
+                        label = { Text("Away (e.g. KC)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         )
-                        ExposedDropdownMenu(
-                            expanded = awayExpanded,
-                            onDismissRequest = { awayExpanded = false }
-                        ) {
-                            allTeams.forEach { team ->
-                                DropdownMenuItem(
-                                    text = { Text("${team.fullName} (${team.code})") },
-                                    onClick = {
-                                        awayCode = team.code
-                                        awayExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    )
+                    OutlinedTextField(
+                        value = homeTeam,
+                        onValueChange = { homeTeam = it.uppercase() },
+                        label = { Text("Home (e.g. BUF)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
                 }
 
-                item {
-                    // Home Team Selector
-                    ExposedDropdownMenuBox(
-                        expanded = homeExpanded,
-                        onExpandedChange = { homeExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = "${NflTeams.getByCode(homeCode).fullName} ($homeCode)",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Home Team") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = homeExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = TurfGreen,
-                                unfocusedBorderColor = Color(0xFF334155)
-                            ),
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = homeExpanded,
-                            onDismissRequest = { homeExpanded = false }
-                        ) {
-                            allTeams.forEach { team ->
-                                DropdownMenuItem(
-                                    text = { Text("${team.fullName} (${team.code})") },
-                                    onClick = {
-                                        homeCode = team.code
-                                        homeExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    // Sportsbook Provider Selector
-                    ExposedDropdownMenuBox(
-                        expanded = sportsbookExpanded,
-                        onExpandedChange = { sportsbookExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = selectedSportsbook,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Sportsbook Provider") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sportsbookExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = TurfGreen,
-                                unfocusedBorderColor = Color(0xFF334155)
-                            ),
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = sportsbookExpanded,
-                            onDismissRequest = { sportsbookExpanded = false }
-                        ) {
-                            sportsbooks.forEach { book ->
-                                DropdownMenuItem(
-                                    text = { Text(book) },
-                                    onClick = {
-                                        selectedSportsbook = book
-                                        sportsbookExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    // Home Spread Input
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = spreadText,
                         onValueChange = { spreadText = it },
-                        label = { Text("Home Spread (e.g. -3.5 or +2.5)") },
+                        label = { Text("Home Spread") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                            unfocusedTextColor = Color.White
+                        )
                     )
-                }
-
-                item {
-                    // Fixture Date
-                    OutlinedTextField(
-                        value = gameDate,
-                        onValueChange = { gameDate = it },
-                        label = { Text("Fixture Date (e.g. Sun, Nov 10)") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    // Kickoff Time
                     OutlinedTextField(
                         value = kickoffTime,
                         onValueChange = { kickoffTime = it },
-                        label = { Text("Kickoff Time (e.g. 1:00 PM ET)") },
+                        label = { Text("Kickoff") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                            unfocusedTextColor = Color.White
+                        )
                     )
                 }
 
-                item {
-                    // TV Broadcast Network
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = gameDate,
+                        onValueChange = { gameDate = it },
+                        label = { Text("Day / Date") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
                     OutlinedTextField(
                         value = tvNetwork,
                         onValueChange = { tvNetwork = it },
-                        label = { Text("TV Network (e.g. CBS, FOX, NBC, ESPN)") },
+                        label = { Text("TV Network") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                            unfocusedTextColor = Color.White
+                        )
                     )
                 }
 
-                item {
-                    // Stadium / Venue
-                    OutlinedTextField(
-                        value = venue,
-                        onValueChange = { venue = it },
-                        label = { Text("Stadium / Venue (Optional)") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = TurfGreen,
-                            unfocusedBorderColor = Color(0xFF334155)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                OutlinedTextField(
+                    value = venue,
+                    onValueChange = { venue = it },
+                    label = { Text("Stadium / Venue") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     )
-                }
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val spread = spreadText.toDoubleOrNull() ?: -3.0
-                    onAddGame(currentWeek, awayCode, homeCode, spread, kickoffTime, gameDate, tvNetwork, venue, selectedSportsbook)
+                    if (awayTeam.isNotBlank() && homeTeam.isNotBlank()) {
+                        val parsedSpread = spreadText.toDoubleOrNull() ?: 0.0
+                        onAddGame(
+                            currentWeek,
+                            awayTeam.trim(),
+                            homeTeam.trim(),
+                            parsedSpread,
+                            kickoffTime.trim(),
+                            gameDate.trim(),
+                            tvNetwork.trim(),
+                            venue.trim(),
+                            sportsbook.trim()
+                        )
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
             ) {
-                Text("Add Fixture", fontWeight = FontWeight.Bold)
+                Text("Add Game", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
