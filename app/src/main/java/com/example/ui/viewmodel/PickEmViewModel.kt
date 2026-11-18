@@ -200,11 +200,21 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
+            // 1. Ensure initial local data / seed games exist
             val newlySeededGames = repository.ensureInitialDataLoaded()
             if (newlySeededGames.isNotEmpty()) {
                 firestoreSyncService.saveGamesToCloud(newlySeededGames)
             }
 
+            // 2. Pull data from Firestore ONCE on startup (replaces the looping listeners)
+            try {
+                firestoreSyncService.syncFromFirestore()
+                Log.d("ViewModel", "Startup Firestore sync completed successfully.")
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Startup Firestore sync failed: ${e.message}", e)
+            }
+
+            // 3. Set the active week
             val mostRecentWeek = repository.getMostRecentActiveWeek()
             _currentWeek.value = mostRecentWeek
         }
