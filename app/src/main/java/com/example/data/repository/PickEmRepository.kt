@@ -18,8 +18,11 @@ class PickEmRepository(private val database: AppDatabase) {
     val allGames: Flow<List<NflGame>> = nflGameDao.getAllGames()
     val allPicks: Flow<List<SpreadPick>> = spreadPickDao.getAllPicks()
 
-    fun getGamesForWeek(weekNumber: Int): Flow<List<NflGame>> = nflGameDao.getGamesForWeek(weekNumber)
-    fun getPicksForWeek(weekNumber: Int): Flow<List<SpreadPick>> = spreadPickDao.getPicksForWeek(weekNumber)
+    fun getGamesForWeek(weekNumber: Int): Flow<List<NflGame>> =
+        nflGameDao.getGamesForWeek(weekNumber)
+
+    fun getPicksForWeek(weekNumber: Int): Flow<List<SpreadPick>> =
+        spreadPickDao.getPicksForWeek(weekNumber)
 
     suspend fun ensureInitialDataLoaded(): List<NflGame> {
         playerDao.insertAll(DefaultNflData.initialPlayers)
@@ -32,7 +35,8 @@ class PickEmRepository(private val database: AppDatabase) {
 
             val insertedGames = nflGameDao.getAllGames().first()
 
-            val samplePicks = DefaultNflData.getSamplePicks(insertedGames).filter { it.weekNumber <= 8 }
+            val samplePicks =
+                DefaultNflData.getSamplePicks(insertedGames).filter { it.weekNumber <= 8 }
             spreadPickDao.insertAll(samplePicks)
 
             return insertedGames
@@ -56,17 +60,24 @@ class PickEmRepository(private val database: AppDatabase) {
         if (existingGames.isEmpty()) {
             nflGameDao.insertAll(freshFixtures)
             val updatedGames = nflGameDao.getAllGames().first()
-            val samplePicks = DefaultNflData.getSamplePicks(updatedGames).filter { it.weekNumber == weekNumber }
+            val samplePicks =
+                DefaultNflData.getSamplePicks(updatedGames).filter { it.weekNumber == weekNumber }
             spreadPickDao.insertAll(samplePicks)
             return freshFixtures.size
         } else {
             for (fresh in freshFixtures) {
                 val match = existingGames.find {
                     it.awayTeamShort.equals(fresh.awayTeamShort, ignoreCase = true) &&
-                    it.homeTeamShort.equals(fresh.homeTeamShort, ignoreCase = true)
+                            it.homeTeamShort.equals(fresh.homeTeamShort, ignoreCase = true)
                 }
                 if (match != null) {
-                    nflGameDao.updateFixtureDetails(match.id, fresh.gameDate, fresh.kickoffTime, fresh.tvNetwork, fresh.venue)
+                    nflGameDao.updateFixtureDetails(
+                        match.id,
+                        fresh.gameDate,
+                        fresh.kickoffTime,
+                        fresh.tvNetwork,
+                        fresh.venue
+                    )
                 } else {
                     nflGameDao.insert(fresh)
                 }
@@ -95,7 +106,8 @@ class PickEmRepository(private val database: AppDatabase) {
 
     suspend fun savePick(gameId: Long, playerId: Long, weekNumber: Int, pickedTeamShort: String) {
         val existing = spreadPickDao.getPick(gameId, playerId)
-        val initialFirstPick = existing?.firstPickTeamShort?.ifBlank { null } ?: existing?.pickedTeamShort?.ifBlank { null } ?: pickedTeamShort.uppercase()
+        val initialFirstPick = existing?.firstPickTeamShort?.ifBlank { null }
+            ?: existing?.pickedTeamShort?.ifBlank { null } ?: pickedTeamShort.uppercase()
         val pick = SpreadPick(
             id = existing?.id ?: 0L,
             gameId = gameId,
@@ -112,7 +124,11 @@ class PickEmRepository(private val database: AppDatabase) {
         nflGameDao.updateScore(gameId, awayScore, homeScore, isFinal)
     }
 
-    suspend fun updateGameSpread(gameId: Long, newSpread: Double, sportsbook: String = "DraftKings") {
+    suspend fun updateGameSpread(
+        gameId: Long,
+        newSpread: Double,
+        sportsbook: String = "DraftKings"
+    ) {
         nflGameDao.updateSpreadWithSportsbook(gameId, newSpread, sportsbook)
     }
 
@@ -248,25 +264,57 @@ class PickEmRepository(private val database: AppDatabase) {
             }
         }
 
+        val existingGames = allGames.first()
+
         for (row in rows) {
-            val awayTeam = NflTeams.getByCode(row.awayShort)
-            val homeTeam = NflTeams.getByCode(row.homeShort)
-            val game = NflGame(
-                weekNumber = row.week,
-                awayTeam = awayTeam.fullName,
-                awayTeamShort = row.awayShort.uppercase(),
-                homeTeam = homeTeam.fullName,
-                homeTeamShort = row.homeShort.uppercase(),
-                homeSpread = row.homeSpread,
-                sportsbookProvider = row.sportsbookProvider,
-                gameDate = row.gameDate,
-                kickoffTime = row.kickoffTime,
-                tvNetwork = row.tvNetwork,
-                awayScore = row.awayScore,
-                homeScore = row.homeScore,
-                isFinal = row.isFinal
-            )
-            val gameId = nflGameDao.insert(game)
+            val awayShort = row.awayShort.trim().uppercase()
+            val homeShort = row.homeShort.trim().uppercase()
+            val awayTeam = NflTeams.getByCode(awayShort)
+            val homeTeam = NflTeams.getByCode(homeShort)
+
+            val existingGame = existingGames.find {
+                it.weekNumber == row.week &&
+                        it.awayTeamShort.equals(awayShort, ignoreCase = true) &&
+                        it.homeTeamShort.equals(homeShort, ignoreCase = true)
+            }
+
+            val gameId: Long = if (existingGame != null) {
+                val updatedGame = existingGame.copy(
+                    awayTeam = awayTeam.fullName,
+                    awayTeamShort = awayShort,
+                    homeTeam = homeTeam.fullName,
+                    homeTeamShort = homeShort,
+                    homeSpread = row.homeSpread,
+                    sportsbookProvider = row.sportsbookProvider.ifBlank { existingGame.sportsbookProvider },
+                    gameDate = row.gameDate.ifBlank { existingGame.gameDate },
+                    kickoffTime = row.kickoffTime.ifBlank { existingGame.kickoffTime },
+                    tvNetwork = row.tvNetwork,
+                    venue = row.venue,
+                    awayScore = row.awayScore ?: existingGame.awayScore,
+                    homeScore = row.homeScore ?: existingGame.homeScore,
+                    isFinal = row.isFinal || existingGame.isFinal
+                )
+                nflGameDao.update(updatedGame) // Use nflGameDao.insert(updatedGame) if your DAO uses @Upsert or OnConflictStrategy.REPLACE
+                existingGame.id
+            } else {
+                val newGame = NflGame(
+                    weekNumber = row.week,
+                    awayTeam = awayTeam.fullName,
+                    awayTeamShort = awayShort,
+                    homeTeam = homeTeam.fullName,
+                    homeTeamShort = homeShort,
+                    homeSpread = row.homeSpread,
+                    sportsbookProvider = row.sportsbookProvider,
+                    gameDate = row.gameDate,
+                    kickoffTime = row.kickoffTime,
+                    tvNetwork = row.tvNetwork,
+                    venue = row.venue,
+                    awayScore = row.awayScore,
+                    homeScore = row.homeScore,
+                    isFinal = row.isFinal
+                )
+                nflGameDao.insert(newGame)
+            }
 
             for ((playerName, teamShort) in row.playerPicks) {
                 val player = playerMap[playerName.lowercase()] ?: continue
@@ -274,11 +322,10 @@ class PickEmRepository(private val database: AppDatabase) {
                     gameId = gameId,
                     playerId = player.id,
                     weekNumber = row.week,
-                    pickedTeamShort = teamShort.uppercase()
+                    pickedTeamShort = teamShort.trim().uppercase()
                 )
                 spreadPickDao.insertOrUpdate(pick)
             }
         }
-
     }
 }

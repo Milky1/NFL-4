@@ -231,19 +231,14 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                         games = currentWeekGames,
                         picks = currentWeekPicks,
                         isWeekLocked = lockStatus.isLocked,
-                        lockDeadlineDesc = lockStatus.lockDeadlineDescription,
                         onSelectWeek = { viewModel.selectWeek(it) },
                         onSelectPlayer = { viewModel.selectPlayer(it) },
                         onMakePick = { gameId, teamShort -> viewModel.makePick(gameId, teamShort) },
                         onMakePlayerPick = { gameId, playerId, teamShort -> viewModel.makePickForPlayer(gameId, playerId, teamShort) },
-                        onRefreshFixtures = { week -> viewModel.refreshFixtures(week) },
-                        onRefreshSpreads = { week -> viewModel.refreshSpreads(week) },
-                        onRefreshSpreadsWithProvider = { week, provider -> viewModel.refreshSpreads(week, provider) },
                         onUpdateSpread = { gameId, newSpread, sportsbook -> viewModel.updateSpread(gameId, newSpread, sportsbook) },
                         onAddGame = { week, away, home, spread, time, date, tv, venue, sportsbook ->
                             viewModel.addGame(week, away, home, spread, time, date, tv, venue, sportsbook)
                         },
-                        onToggleWeekSpreadLock = { week -> viewModel.toggleWeekSpreadLock(week) },
                         onSaveAll = { viewModel.saveAllChanges() }
                     )
                 }

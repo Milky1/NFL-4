@@ -610,23 +610,12 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     fun importCsv(csvContent: String) {
         viewModelScope.launch {
             try {
-                val parsed = SpreadsheetExportImport.parseCsvGames(csvContent)
-                if (parsed.isEmpty()) {
+                val count = processAndSyncParsedCsv(csvContent)
+                if (count == 0) {
                     _snackbarMessage.value = "No valid games or picks found in CSV"
-                    return@launch
+                } else {
+                    _snackbarMessage.value = "Imported $count games and synced to Firebase successfully!"
                 }
-                repository.importParsedRows(parsed)
-
-                // Give Room a brief moment to emit the updated list to allGames, or filter the imported weeks
-                val importedWeeks = parsed.map { it.week }.toSet()
-                kotlinx.coroutines.delay(150)
-                val gamesToSync = allGames.value.filter { it.weekNumber in importedWeeks }
-
-                if (gamesToSync.isNotEmpty()) {
-                    firestoreSyncService.saveGamesToCloud(gamesToSync)
-                }
-
-                _snackbarMessage.value = "Imported ${parsed.size} games and synced to Firebase successfully!"
             } catch (e: Exception) {
                 _snackbarMessage.value = "Failed to import CSV: ${e.message}"
             }
@@ -644,12 +633,11 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
             _isSyncing.value = false
             result.onSuccess { csvText ->
                 try {
-                    val parsed = SpreadsheetExportImport.parseCsvGames(csvText)
-                    if (parsed.isEmpty()) {
+                    val count = processAndSyncParsedCsv(csvText)
+                    if (count == 0) {
                         _snackbarMessage.value = "Spreadsheet loaded, but no valid game rows found."
                     } else {
-                        repository.importParsedRows(parsed)
-                        _snackbarMessage.value = "✅ Live sync complete! Imported ${parsed.size} fixtures and picks."
+                        _snackbarMessage.value = "✅ Live sync complete! Imported $count fixtures and synced to Firebase."
                     }
                 } catch (e: Exception) {
                     _snackbarMessage.value = "Error parsing spreadsheet CSV: ${e.message}"
@@ -658,6 +646,21 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                 _snackbarMessage.value = "Sync failed: ${err.message}"
             }
         }
+    }
+
+    private suspend fun processAndSyncParsedCsv(csvContent: String): Int {
+        val parsed = SpreadsheetExportImport.parseCsvGames(csvContent)
+        if (parsed.isEmpty()) return 0
+
+        repository.importParsedRows(parsed)
+
+        val importedWeeks = parsed.map { it.week }.toSet()
+        kotlinx.coroutines.delay(150)
+        val gamesToSync = allGames.value.filter { it.weekNumber in importedWeeks }
+        if (gamesToSync.isNotEmpty()) {
+            firestoreSyncService.saveGamesToCloud(gamesToSync)
+        }
+        return parsed.size
     }
 
     fun generateChatSummary(week: Int): String {
