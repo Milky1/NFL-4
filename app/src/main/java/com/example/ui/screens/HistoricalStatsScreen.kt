@@ -232,7 +232,7 @@ fun HistoricalStatsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "YEARLY TOTAL SPREADSHEET",
+                            text = "YEARLY TOTAL",
                             color = Color.White,
                             fontWeight = FontWeight.Black,
                             fontSize = 17.sp
@@ -366,7 +366,7 @@ fun HistoricalStatsScreen(
                             modifier = Modifier.weight(1.0f)
                         )
                         Text(
-                            text = "CLIVE [C]",
+                            text = "CLIVE",
                             color = Color(0xFF00E676),
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,
@@ -374,7 +374,7 @@ fun HistoricalStatsScreen(
                             modifier = Modifier.weight(1.0f)
                         )
                         Text(
-                            text = "MARK [M]",
+                            text = "MARK",
                             color = Color(0xFFFFB300),
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,
@@ -382,7 +382,7 @@ fun HistoricalStatsScreen(
                             modifier = Modifier.weight(1.0f)
                         )
                         Text(
-                            text = "CONOR [CO]",
+                            text = "CONOR",
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,

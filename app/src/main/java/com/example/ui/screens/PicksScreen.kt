@@ -79,7 +79,6 @@ import com.example.ui.theme.StadiumGold
 import com.example.ui.theme.StadiumGoldLight
 import com.example.ui.theme.StadiumNavy900
 import com.example.ui.theme.TurfGreen
-import kotlin.let
 
 @Composable
 fun PicksScreen(
@@ -90,18 +89,13 @@ fun PicksScreen(
     games: List<NflGame>,
     picks: List<SpreadPick>,
     isWeekLocked: Boolean = false,
-    lockDeadlineDesc: String = "",
     onSelectWeek: (Int) -> Unit,
     onSelectPlayer: (Long) -> Unit,
     onMakePick: (Long, String) -> Unit,
     onMakePlayerPick: (Long, Long, String) -> Unit = { _, _, _ -> },
     onRefreshFixturesAndSpreads: (Int) -> Unit = {},
-    onRefreshFixtures: (Int) -> Unit = onRefreshFixturesAndSpreads,
-    onRefreshSpreads: (Int) -> Unit = onRefreshFixturesAndSpreads,
-    onRefreshSpreadsWithProvider: (Int, String) -> Unit = { week, _ -> onRefreshSpreads(week) },
     onUpdateSpread: (Long, Double, String) -> Unit,
     onAddGame: (Int, String, String, Double, String, String, String, String, String) -> Unit,
-    onToggleWeekSpreadLock: (Int) -> Unit = {},
     onSaveAll: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -124,138 +118,7 @@ fun PicksScreen(
                 HeroBanner(currentWeek = currentWeek, totalPlayers = players.size)
             }
 
-            // 3 Horizontal Refresh Buttons
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("week_refresh_controls_card"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2B45))
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "WEEK $currentWeek LIVE ACTIONS",
-                                color = TurfGreen,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Button(
-                                onClick = { onRefreshFixtures(currentWeek) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1A263E),
-                                    contentColor = Color.White
-                                ),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8)),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("refresh_fixtures_btn")
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = "Fixtures",
-                                        tint = Color(0xFF38BDF8),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "Refresh\nFixtures",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF38BDF8),
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 12.sp
-                                    )
-                                }
-                            }
-
-                            Button(
-                                onClick = { onRefreshSpreads(currentWeek) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF22283A),
-                                    contentColor = Color.White
-                                ),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("refresh_spreads_btn")
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                        contentDescription = "Spreads",
-                                        tint = StadiumGold,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "Refresh\nSpreads",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        color = StadiumGold,
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 12.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { onToggleWeekSpreadLock(currentWeek) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isWeekLocked) Color(0xFF1E2B45) else Color(0xFF22283A),
-                                contentColor = StadiumGold
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, StadiumGold),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("toggle_week_lock_btn")
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = StadiumGold,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (isWeekLocked) "🔒 Week $currentWeek Spreads Locked (Frozen)" else "🔓 Lock Week $currentWeek Spreads",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = StadiumGold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             item {
                 Text(
@@ -279,7 +142,8 @@ fun PicksScreen(
                     selectedPlayerId = activePlayer?.id,
                     onSelectPlayer = onSelectPlayer,
                     getPicksCount = { playerId ->
-                        val pickedCount = picks.count { it.playerId == playerId && games.any { g -> g.id == it.gameId } }
+                        val pickedCount =
+                            picks.count { it.playerId == playerId && games.any { g -> g.id == it.gameId } }
                         Pair(pickedCount, games.size)
                     }
                 )
@@ -308,7 +172,7 @@ fun PicksScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap the + button below or 'Refresh Spreads' to populate matchups.",
+                                text = "Tap the + button below to add matchups or sync from League & Sync.",
                                 color = Color(0xFF94A3B8),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
@@ -341,6 +205,7 @@ fun PicksScreen(
                 }
             }
 
+
             item {
                 Spacer(modifier = Modifier.height(80.dp))
             }
@@ -359,7 +224,11 @@ fun PicksScreen(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Check, contentDescription = "Save", modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Save",
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Save", fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
@@ -394,7 +263,11 @@ fun PicksScreen(
             onDismissRequest = { showLockedNoticeDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = StadiumGold)
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = StadiumGold
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "DraftKings Spread Locked",
@@ -414,7 +287,10 @@ fun PicksScreen(
             confirmButton = {
                 Button(
                     onClick = { showLockedNoticeDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = TurfGreen,
+                        contentColor = StadiumNavy900
+                    )
                 ) {
                     Text("Understood", fontWeight = FontWeight.Bold)
                 }
@@ -542,7 +418,10 @@ fun GamePickCard(
                         }
                     }
                     if (game.venue.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = "Venue",
@@ -608,9 +487,17 @@ fun GamePickCard(
                 spreadText = game.formattedAwaySpread(),
                 score = game.awayScore,
                 isFinal = game.isFinal,
-                isPickedByActive = activePlayerPick?.pickedTeamShort.equals(game.awayTeamShort, ignoreCase = true),
+                isPickedByActive = activePlayerPick?.pickedTeamShort.equals(
+                    game.awayTeamShort,
+                    ignoreCase = true
+                ),
                 activePlayer = activePlayer,
-                allPicksForTeam = picks.filter { it.pickedTeamShort.equals(game.awayTeamShort, ignoreCase = true) },
+                allPicksForTeam = picks.filter {
+                    it.pickedTeamShort.equals(
+                        game.awayTeamShort,
+                        ignoreCase = true
+                    )
+                },
                 players = players,
                 onPick = { onPickTeam(game.awayTeamShort) }
             )
@@ -625,9 +512,17 @@ fun GamePickCard(
                 spreadText = game.formattedHomeSpread(),
                 score = game.homeScore,
                 isFinal = game.isFinal,
-                isPickedByActive = activePlayerPick?.pickedTeamShort.equals(game.homeTeamShort, ignoreCase = true),
+                isPickedByActive = activePlayerPick?.pickedTeamShort.equals(
+                    game.homeTeamShort,
+                    ignoreCase = true
+                ),
                 activePlayer = activePlayer,
-                allPicksForTeam = picks.filter { it.pickedTeamShort.equals(game.homeTeamShort, ignoreCase = true) },
+                allPicksForTeam = picks.filter {
+                    it.pickedTeamShort.equals(
+                        game.homeTeamShort,
+                        ignoreCase = true
+                    )
+                },
                 players = players,
                 onPick = { onPickTeam(game.homeTeamShort) }
             )
@@ -676,8 +571,16 @@ fun GamePickCard(
                                 val coverResult = game.getAtsResult()
                                 when {
                                     coverResult == AtsResult.PUSH -> "PUSH"
-                                    coverResult == AtsResult.HOME_COVERED && pickedTeam.equals(game.homeTeamShort, ignoreCase = true) -> "WON"
-                                    coverResult == AtsResult.AWAY_COVERED && pickedTeam.equals(game.awayTeamShort, ignoreCase = true) -> "WON"
+                                    coverResult == AtsResult.HOME_COVERED && pickedTeam.equals(
+                                        game.homeTeamShort,
+                                        ignoreCase = true
+                                    ) -> "WON"
+
+                                    coverResult == AtsResult.AWAY_COVERED && pickedTeam.equals(
+                                        game.awayTeamShort,
+                                        ignoreCase = true
+                                    ) -> "WON"
+
                                     coverResult == AtsResult.PENDING -> "PENDING"
                                     else -> "LOST"
                                 }
@@ -712,29 +615,69 @@ fun GamePickCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Button(
-                                        onClick = { onMakePlayerPick(player.id, game.awayTeamShort) },
+                                        onClick = {
+                                            onMakePlayerPick(
+                                                player.id,
+                                                game.awayTeamShort
+                                            )
+                                        },
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (pickedTeam.equals(game.awayTeamShort, ignoreCase = true)) Color(0xFF38BDF8) else Color(0xFF1E2B45),
-                                            contentColor = if (pickedTeam.equals(game.awayTeamShort, ignoreCase = true)) Color(0xFF0F172A) else Color.White
+                                            containerColor = if (pickedTeam.equals(
+                                                    game.awayTeamShort,
+                                                    ignoreCase = true
+                                                )
+                                            ) Color(0xFF38BDF8) else Color(0xFF1E2B45),
+                                            contentColor = if (pickedTeam.equals(
+                                                    game.awayTeamShort,
+                                                    ignoreCase = true
+                                                )
+                                            ) Color(0xFF0F172A) else Color.White
                                         ),
                                         shape = RoundedCornerShape(6.dp),
-                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                            horizontal = 8.dp,
+                                            vertical = 2.dp
+                                        ),
                                         modifier = Modifier.height(26.dp)
                                     ) {
-                                        Text(text = game.awayTeamShort, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = game.awayTeamShort,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
 
                                     Button(
-                                        onClick = { onMakePlayerPick(player.id, game.homeTeamShort) },
+                                        onClick = {
+                                            onMakePlayerPick(
+                                                player.id,
+                                                game.homeTeamShort
+                                            )
+                                        },
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (pickedTeam.equals(game.homeTeamShort, ignoreCase = true)) StadiumGold else Color(0xFF1E2B45),
-                                            contentColor = if (pickedTeam.equals(game.homeTeamShort, ignoreCase = true)) StadiumNavy900 else Color.White
+                                            containerColor = if (pickedTeam.equals(
+                                                    game.homeTeamShort,
+                                                    ignoreCase = true
+                                                )
+                                            ) StadiumGold else Color(0xFF1E2B45),
+                                            contentColor = if (pickedTeam.equals(
+                                                    game.homeTeamShort,
+                                                    ignoreCase = true
+                                                )
+                                            ) StadiumNavy900 else Color.White
                                         ),
                                         shape = RoundedCornerShape(6.dp),
-                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                            horizontal = 8.dp,
+                                            vertical = 2.dp
+                                        ),
                                         modifier = Modifier.height(26.dp)
                                     ) {
-                                        Text(text = game.homeTeamShort, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = game.homeTeamShort,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
 
                                     if (playerOutcome != null) {
@@ -748,7 +691,10 @@ fun GamePickCard(
                                                 color = Color.White,
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Black,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                modifier = Modifier.padding(
+                                                    horizontal = 6.dp,
+                                                    vertical = 2.dp
+                                                )
                                             )
                                         }
                                     }
@@ -777,7 +723,8 @@ fun TeamMatchupRow(
     players: List<Player>,
     onPick: () -> Unit
 ) {
-    val pickedPlayers = players.filter { player -> allPicksForTeam.any { it.playerId == player.id } }
+    val pickedPlayers =
+        players.filter { player -> allPicksForTeam.any { it.playerId == player.id } }
 
     Row(
         modifier = Modifier
@@ -942,7 +889,10 @@ fun EditSpreadDialog(
                     val parsed = spreadText.toDoubleOrNull() ?: game.homeSpread
                     onSaveSpread(game.id, parsed, sportsbook)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = TurfGreen,
+                    contentColor = StadiumNavy900
+                )
             ) {
                 Text("Save Line", fontWeight = FontWeight.Bold)
             }
@@ -1090,7 +1040,10 @@ fun AddGameDialog(
                         )
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TurfGreen, contentColor = StadiumNavy900)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = TurfGreen,
+                    contentColor = StadiumNavy900
+                )
             ) {
                 Text("Add Game", fontWeight = FontWeight.Bold)
             }

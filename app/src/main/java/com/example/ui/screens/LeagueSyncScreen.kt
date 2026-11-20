@@ -107,7 +107,9 @@ fun LeagueSyncScreen(
     var showAddPlayerDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
-    var sheetUrlInput by remember { mutableStateOf("") }
+    var sheetUrlInput by remember {
+        mutableStateOf("https://docs.google.com/spreadsheets/d/1uWbwRM3sqcevEHbzz8FbqoNc6px7C8uAlu4bIHq2L8Y/edit?gid=0#gid=0")
+    }
     var markEmailInput by remember(markEmail) { mutableStateOf(markEmail) }
     var conorEmailInput by remember(conorEmail) { mutableStateOf(conorEmail) }
     var passcodeInput by remember(leaguePasscode) { mutableStateOf(leaguePasscode) }
@@ -434,88 +436,6 @@ fun LeagueSyncScreen(
             }
         }
 
-        // 24-Hour Spread Lock Status Card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("spread_lock_rule_card"),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isWeekLocked) StadiumGold.copy(alpha = 0.5f) else Color(0xFF1E2B45))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isWeekLocked) StadiumGold.copy(alpha = 0.2f) else TurfGreen.copy(alpha = 0.2f),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (isWeekLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                                    contentDescription = null,
-                                    tint = if (isWeekLocked) StadiumGold else TurfGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = if (isWeekLocked) "Week $currentWeek Spreads Locked" else "Week $currentWeek Spreads Open",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = TurfGreen.copy(alpha = 0.2f)
-                                ) {
-                                    Text(
-                                        text = "DraftKings",
-                                        color = TurfGreen,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 9.sp,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "Rule: Spreads freeze 24h prior to first kickoff. No changes allowed after lock.",
-                                color = Color(0xFF94A3B8),
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Switch(
-                        checked = isWeekLocked,
-                        onCheckedChange = { onToggleSpreadLock(currentWeek) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = StadiumGold,
-                            checkedTrackColor = StadiumGold.copy(alpha = 0.4f),
-                            uncheckedThumbColor = Color(0xFF94A3B8),
-                            uncheckedTrackColor = Color(0xFF1E2B45)
-                        ),
-                        modifier = Modifier.testTag("spread_lock_toggle")
-                    )
-                }
-            }
-        }
 
         // Live Google Sheets URL Sync Card
         item {
