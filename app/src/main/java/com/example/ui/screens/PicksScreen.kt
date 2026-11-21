@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -48,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -774,6 +777,23 @@ fun TeamMatchupRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // 1. Spread pill on the left (hidden when blank so no empty box renders)
+            if (spreadText.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF222B40)
+                ) {
+                    Text(
+                        text = spreadText,
+                        color = StadiumGold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // 2. Score aligned to the right next to the pick circle
             if (score != null) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -784,22 +804,12 @@ fun TeamMatchupRow(
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .widthIn(min = 32.dp)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
-            }
-
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color(0xFF222B40)
-            ) {
-                Text(
-                    text = spreadText,
-                    color = StadiumGold,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
             }
 
             Box(
@@ -830,8 +840,19 @@ fun EditSpreadDialog(
     onDismiss: () -> Unit,
     onSaveSpread: (Long, Double, String) -> Unit
 ) {
-    var spreadText by remember { mutableStateOf(game.homeSpread.toString()) }
-    var sportsbook by remember { mutableStateOf(game.sportsbookProvider.ifBlank { "DraftKings" }) }
+    fun formatSpreadInput(value: Double): String {
+        return if (value == 0.0) "0.0" else value.toString()
+    }
+
+    var awaySpreadText by remember {
+        mutableStateOf(formatSpreadInput(-game.homeSpread))
+    }
+    var homeSpreadText by remember {
+        mutableStateOf(formatSpreadInput(game.homeSpread))
+    }
+    var sportsbook by remember {
+        mutableStateOf(game.sportsbookProvider.ifBlank { "DraftKings" })
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -846,10 +867,38 @@ fun EditSpreadDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
-                    value = spreadText,
-                    onValueChange = { spreadText = it },
-                    label = { Text("${game.homeTeamShort} Spread") },
+                    value = awaySpreadText,
+                    onValueChange = { input ->
+                        awaySpreadText = input
+                        val parsedAway = input.toDoubleOrNull()
+                        if (parsedAway != null) {
+                            homeSpreadText = formatSpreadInput(-parsedAway)
+                        } else if (input.isBlank()) {
+                            homeSpreadText = ""
+                        }
+                    },
+                    label = { Text("${game.awayTeamShort} (Away) Spread") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+                OutlinedTextField(
+                    value = homeSpreadText,
+                    onValueChange = { input ->
+                        homeSpreadText = input
+                        val parsedHome = input.toDoubleOrNull()
+                        if (parsedHome != null) {
+                            awaySpreadText = formatSpreadInput(-parsedHome)
+                        } else if (input.isBlank()) {
+                            awaySpreadText = ""
+                        }
+                    },
+                    label = { Text("${game.homeTeamShort} (Home) Spread") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White
@@ -870,8 +919,10 @@ fun EditSpreadDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val parsed = spreadText.toDoubleOrNull() ?: game.homeSpread
-                    onSaveSpread(game.id, parsed, sportsbook)
+                    val parsedHome = homeSpreadText.toDoubleOrNull()
+                        ?: awaySpreadText.toDoubleOrNull()?.let { -it }
+                        ?: game.homeSpread
+                    onSaveSpread(game.id, parsedHome, sportsbook)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = TurfGreen,

@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -372,7 +371,7 @@ fun GameScoreCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onEditSpread() }
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                             .testTag("score_card_edit_spread_${game.id}")
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -382,7 +381,7 @@ fun GameScoreCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Spread",
@@ -399,7 +398,7 @@ fun GameScoreCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onEditScore() }
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .padding(horizontal = 11.dp, vertical = 4.dp)
                             .testTag("enter_score_btn_${game.id}")
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -588,15 +587,19 @@ fun ScoreboardTeamRow(
     teamName: String,
     spreadText: String,
     score: Int?,
-    isFinal: Boolean
+    isFinal: Boolean,
+    modifier: Modifier = Modifier
 ) {
+    val hasSpread = spreadText.isNotBlank() &&
+            !spreadText.equals("N/A", ignoreCase = true) &&
+            spreadText != "-"
+
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFF0F172A))
-            .border(1.dp, Color(0xFF1E2B45), RoundedCornerShape(12.dp))
-            .padding(10.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -621,52 +624,57 @@ fun ScoreboardTeamRow(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            TeamBadge(teamCode = teamShort, size = 28)
+            TeamBadge(teamCode = teamShort, size = 26)
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Column {
-                Text(
-                    text = teamName,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Text(
+                text = teamName,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // 1. Spread on the left; omitted completely when blank so no empty box appears
+            if (hasSpread) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF222B40)
+                ) {
+                    Text(
+                        text = spreadText,
+                        color = StadiumGold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            // 2. Score aligned to the right edge
             if (score != null) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFF1B2844)
+                    color = if (isFinal) Color(0xFF1B2844) else Color(0xFF162038)
                 ) {
                     Text(
                         text = score.toString(),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .widthIn(min = 34.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
-            }
-
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color(0xFF222B40)
-            ) {
-                Text(
-                    text = spreadText,
-                    color = StadiumGold,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
             }
         }
     }
