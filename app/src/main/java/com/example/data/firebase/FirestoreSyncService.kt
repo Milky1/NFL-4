@@ -1,10 +1,9 @@
 package com.example.data.firebase
 
 import android.content.Context
-import com.example.data.db.AppDatabase
 import android.util.Log
-import kotlinx.coroutines.flow.first
 import com.example.R
+import com.example.data.db.AppDatabase
 import com.example.data.model.NflGame
 import com.example.data.model.SpreadPick
 import com.google.firebase.Firebase

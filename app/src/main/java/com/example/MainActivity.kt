@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.SportsScore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.collectAsState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -253,11 +252,8 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                         weeklySummary = currentWeeklySummary,
                         onSelectWeek = { viewModel.selectWeek(it) },
                         onUpdateScore = { gameId, away, home, final -> viewModel.updateScore(gameId, away, home, final) },
-                        onRefreshFixtures = { week -> viewModel.refreshFixtures(week) },
-                        onRefreshSpreads = { week -> viewModel.refreshSpreads(week) },
                         onUpdateSpread = { gameId, newSpread, sportsbook -> viewModel.updateSpread(gameId, newSpread, sportsbook) },
                         onClearScores = { week -> viewModel.clearWeekScores(week) },
-                        onResetWeekFixtures = { week -> viewModel.deleteGamesForWeek(week) },
                         onSaveAll = { viewModel.saveAllChanges() }
                     )
                 }

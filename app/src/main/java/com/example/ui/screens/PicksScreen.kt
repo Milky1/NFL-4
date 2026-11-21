@@ -19,34 +19,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SportsFootball
-import androidx.compose.material.icons.filled.SportsScore
-import androidx.compose.material.icons.filled.Warning
-import com.example.data.stats.StatsCalculator
-import com.example.data.model.AtsResult
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -67,16 +52,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.AtsResult
 import com.example.data.model.NflGame
 import com.example.data.model.Player
 import com.example.data.model.SpreadPick
+import com.example.data.stats.StatsCalculator
 import com.example.ui.components.HeroBanner
 import com.example.ui.components.PlayerSelectorBar
 import com.example.ui.components.TeamBadge
 import com.example.ui.components.WeekSelector
-import com.example.ui.theme.CoralRed
 import com.example.ui.theme.StadiumGold
-import com.example.ui.theme.StadiumGoldLight
 import com.example.ui.theme.StadiumNavy900
 import com.example.ui.theme.TurfGreen
 
@@ -93,7 +78,6 @@ fun PicksScreen(
     onSelectPlayer: (Long) -> Unit,
     onMakePick: (Long, String) -> Unit,
     onMakePlayerPick: (Long, Long, String) -> Unit = { _, _, _ -> },
-    onRefreshFixturesAndSpreads: (Int) -> Unit = {},
     onUpdateSpread: (Long, Double, String) -> Unit,
     onAddGame: (Int, String, String, Double, String, String, String, String, String) -> Unit,
     onSaveAll: () -> Unit = {},
@@ -762,7 +746,7 @@ fun TeamMatchupRow(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            TeamBadge(teamShort = teamShort, modifier = Modifier.size(28.dp))
+            TeamBadge(teamCode = teamShort, size = 28)
 
             Spacer(modifier = Modifier.width(8.dp))
 
