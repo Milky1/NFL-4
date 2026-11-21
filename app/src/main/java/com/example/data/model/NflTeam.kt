@@ -1,6 +1,8 @@
 package com.example.data.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.annotation.DrawableRes
+import com.example.R
 
 data class NflTeam(
     val code: String,
@@ -46,6 +48,7 @@ object NflTeams {
         NflTeam("TB", "Buccaneers", "Tampa Bay", Color(0xFFD50A0A), Color(0xFF0A0A08)),
         NflTeam("TEN", "Titans", "Tennessee", Color(0xFF0C2340), Color(0xFF4B92DB)),
         NflTeam("WAS", "Commanders", "Washington", Color(0xFF5A1414), Color(0xFFFFB612))
+
     )
 
     private val teamsMap = teams.associateBy { it.code }
@@ -207,7 +210,44 @@ object NflTeams {
         "SEAHAWKS" to "SEA",
         "SEATTLE" to "SEA"
     )
-
+    @DrawableRes
+    fun getLogoRes(teamCode: String): Int? {
+        return when (teamCode.trim().uppercase()) {
+            "ARI" -> R.drawable.arizona_cardinals_logo
+            "ATL" -> R.drawable.atlanta_falcons_logo
+            "BAL" -> R.drawable.baltimore_ravens_logo
+            "BUF" -> R.drawable.buffalo_bills_logo
+            "CAR" -> R.drawable.carolina_panthers_logo
+            "CHI" -> R.drawable.chicago_bears_logo
+            "CIN" -> R.drawable.cincinnati_bengals_logo
+            "CLE" -> R.drawable.cleveland_browns_logo
+            "DAL" -> R.drawable.dallas_cowboys_logo
+            "DEN" -> R.drawable.denver_broncos_logo
+            "DET" -> R.drawable.detroit_lions_logo
+            "GB"  -> R.drawable.green_bay_packers_logo
+            "HOU" -> R.drawable.houston_texans_logo
+            "IND" -> R.drawable.indianapolis_colts_logo
+            "JAX" -> R.drawable.jacksonville_jaguars_logo
+            "KC"  -> R.drawable.kansas_city_chiefs_logo
+            "LV"  -> R.drawable.las_vegas_raiders_logo
+            "LAC" -> R.drawable.los_angeles_chargers_logo
+            "LAR" -> R.drawable.los_angeles_rams_logo
+            "MIA" -> R.drawable.miami_dolphins_logo
+            "MIN" -> R.drawable.minnesota_vikings_logo
+            "NE"  -> R.drawable.new_england_patriots_logo
+            "NO"  -> R.drawable.new_orleans_saints_logo
+            "NYG" -> R.drawable.new_york_giants_logo
+            "NYJ" -> R.drawable.new_york_jets_logo
+            "PHI" -> R.drawable.philadelphia_eagles_logo
+            "PIT" -> R.drawable.pittsburgh_steelers_logo
+            "SF"  -> R.drawable.san_francisco_49ers_logo
+            "SEA" -> R.drawable.seattle_seahawks_logo
+            "TB"  -> R.drawable.tampa_bay_buccaneers_logo
+            "TEN" -> R.drawable.tennessee_titans_logo
+            "WAS" -> R.drawable.washington_commanders_logo
+            else  -> null
+        }
+    }
     fun getByCode(code: String): NflTeam {
         val normalized = code.trim().uppercase()
         val direct = teamsMap[normalized]
