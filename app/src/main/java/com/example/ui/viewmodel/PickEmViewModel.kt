@@ -2,13 +2,15 @@ package com.example.ui.viewmodel
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.util.Log
 import android.content.Context
+import android.util.Log
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
 import com.example.data.firebase.FirestoreSyncService
 import com.example.data.model.NflGame
+import com.example.data.model.NflTeams
 import com.example.data.model.Player
 import com.example.data.model.SpreadPick
 import com.example.data.model.WeekSpreadLockStatus
@@ -34,8 +36,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.random.Random
-import androidx.core.content.edit
-import com.example.data.model.NflTeams
 
 enum class AppTab(val title: String) {
     PICKS("Picks"),
@@ -72,7 +72,7 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     // League is unlocked if previously unlocked on this device, or if user is signed in as Clive or whitelisted email
     private val _isLeagueUnlocked = MutableStateFlow(
         privacyPrefs.getBoolean("league_unlocked", false) ||
-        (Firebase.auth.currentUser?.email?.equals("clivecleary@gmail.com", ignoreCase = true) == true)
+                (Firebase.auth.currentUser?.email?.equals("clivecleary@gmail.com", ignoreCase = true) == true)
     )
     val isLeagueUnlocked: StateFlow<Boolean> = _isLeagueUnlocked.asStateFlow()
 
@@ -219,18 +219,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
             _currentWeek.value = mostRecentWeek
         }
 
-
-// Games Sync
-// Games Sync (inside init)
+        // Games Sync (inside init)
         viewModelScope.launch {
             firestoreSyncService.observeCloudGames().collect { cloudGames ->
                 Log.d("FirestoreSync", "Received ${cloudGames.size} games from Firestore")
                 for (game in cloudGames) {
-
-                    // Find the local game from memory
                     val localGame = allGames.value.find { it.id == game.id }
 
-                    // GUARD: Only update if scores, final status, or spreads actually differ
                     val hasChanged = localGame == null ||
                             localGame.awayScore != game.awayScore ||
                             localGame.homeScore != game.homeScore ||
@@ -244,15 +239,13 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                             homeScore = game.homeScore,
                             isFinal = game.isFinal
                         )
-                        Log.d("FirestoreSync", "Updated score for gameId: ${game.id}")
+                        Log.d("FirestoreSync", "Updated gameId: ${game.id}")
                     }
                 }
             }
         }
 
-
-        // Picks Sync
-        // Picks Sync in PickemViewModel.kt initializer
+        // Picks Sync (inside init - inbound Firestore -> Room ONLY; never call uploadPick here)
         viewModelScope.launch {
             firestoreSyncService.observeCloudPicks().collect { cloudPicks ->
                 Log.d("FirestoreSync", "Received ${cloudPicks.size} picks from Firestore")
@@ -261,15 +254,19 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
                         it.gameId == cp.gameId && it.playerId == cp.playerId
                     }
 
-                    // Case-insensitive check prevents false-positive updates due to casing differences
                     if (existingPick == null || !existingPick.pickedTeamShort.equals(cp.pickedTeamShort, ignoreCase = true)) {
-                        repository.savePick(cp.gameId, cp.playerId, cp.weekNumber, cp.pickedTeamShort)
-                        Log.d("FirestoreSync", "Saved pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
+                        repository.savePick(
+                            gameId = cp.gameId,
+                            playerId = cp.playerId,
+                            weekNumber = cp.weekNumber,
+                            pickedTeamShort = cp.pickedTeamShort
+                        )
+                        Log.d("FirestoreSync", "Saved cloud pick for gameId: ${cp.gameId}, player: ${cp.playerId}, team: ${cp.pickedTeamShort}")
                     }
                 }
             }
         }
-    }
+    } // <-- THIS closing brace for `init {` was missing
 
     fun onUserSignedIn(user: FirebaseUser) {
         _currentUser.value = user
@@ -342,7 +339,7 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
     fun updateLeaguePasscode(newCode: String) {
         val code = newCode.trim().ifBlank { "RIVALS-CMC" }
         _leaguePasscode.value = code
-        privacyPrefs.edit { putString("league_passcode", code)}
+        privacyPrefs.edit { putString("league_passcode", code) }
         _snackbarMessage.value = "Passcode updated to $code"
     }
 

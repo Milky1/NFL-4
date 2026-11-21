@@ -58,6 +58,7 @@ class FirestoreSyncService(context: Context) {
         val data = mapOf(
             "id" to game.id.toString(),
             "weekNumber" to game.weekNumber,
+            "seasonYear" to game.seasonYear,
             "awayTeamShort" to game.awayTeamShort,
             "awayTeam" to game.awayTeam,
             "homeTeamShort" to game.homeTeamShort,
@@ -117,6 +118,7 @@ class FirestoreSyncService(context: Context) {
             Log.e("FIRESTORE", "Failed to save games to cloud: ${e.message}", e)
         }
     }
+
     suspend fun syncFromFirestore() {
         Log.d("SYNC", "syncFromFirestore START")
         try {
@@ -156,15 +158,18 @@ class FirestoreSyncService(context: Context) {
                 val playerId = (doc.get("playerId") as? Number)?.toLong()
                     ?: doc.getString("playerId")?.toLongOrNull()
                     ?: return@mapNotNull null
+                val weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1
+                val pickedTeamShort = doc.getString("pickedTeamShort") ?: ""
+                val canonicalDocId = "w${weekNumber}_g${gameId}_p${playerId}"
 
                 SpreadPick(
-                    id = doc.id.hashCode().toLong(), // Matches observeCloudPicks() so Room updates instead of duplicating
+                    id = canonicalDocId.hashCode().toLong(),
                     gameId = gameId,
                     playerId = playerId,
-                    weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1,
-                    pickedTeamShort = doc.getString("pickedTeamShort") ?: "",
-                    timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
-                    firstPickTeamShort = doc.getString("firstPickTeamShort") ?: doc.getString("pickedTeamShort") ?: ""
+                    weekNumber = weekNumber,
+                    pickedTeamShort = pickedTeamShort,
+                    timestamp = doc.getLong("timestamp") ?: 0L,
+                    firstPickTeamShort = doc.getString("firstPickTeamShort") ?: pickedTeamShort
                 )
             }
             database.spreadPickDao().insertAll(picks)
@@ -173,9 +178,10 @@ class FirestoreSyncService(context: Context) {
             Log.e("SYNC", "syncFromFirestore FAILED: ${e.message}", e)
         }
     }
+
     suspend fun uploadPick(pick: SpreadPick, playerName: String) {
         Log.d("FIRESTORE", "uploadPick: $playerName")
-        val uid = auth.currentUser?.uid ?: "anonymous"  // ← use a fallback instead of returning
+        val uid = auth.currentUser?.uid ?: "anonymous"
         val pickDocId = "w${pick.weekNumber}_g${pick.gameId}_p${pick.playerId}"
         val doc = db.collection("picks").document(pickDocId)
         val data = mapOf(
@@ -185,6 +191,8 @@ class FirestoreSyncService(context: Context) {
             "playerName" to playerName,
             "weekNumber" to pick.weekNumber,
             "pickedTeamShort" to pick.pickedTeamShort,
+            "firstPickTeamShort" to pick.firstPickTeamShort.ifBlank { pick.pickedTeamShort },
+            "timestamp" to pick.timestamp,
             "userId" to uid,
             "createdAt" to FieldValue.serverTimestamp()
         )
@@ -199,10 +207,9 @@ class FirestoreSyncService(context: Context) {
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null) {
+                if (snapshot != null && !snapshot.metadata.hasPendingWrites()) {
                     val list = snapshot.documents.mapNotNull { doc ->
                         try {
-                            // Extract gameId regardless of whether Firestore stored it as String or Number
                             val gameIdRaw = doc.get("gameId")
                             val gameId = when (gameIdRaw) {
                                 is String -> gameIdRaw.toLongOrNull()
@@ -210,7 +217,6 @@ class FirestoreSyncService(context: Context) {
                                 else -> null
                             } ?: return@mapNotNull null
 
-                            // Extract playerId regardless of whether Firestore stored it as String or Number
                             val playerIdRaw = doc.get("playerId")
                             val playerId = when (playerIdRaw) {
                                 is String -> playerIdRaw.toLongOrNull()
@@ -222,15 +228,17 @@ class FirestoreSyncService(context: Context) {
                                 ?: (doc.getString("weekNumber"))?.toIntOrNull() ?: 1
                             val team = doc.getString("pickedTeamShort") ?: return@mapNotNull null
 
-                            // Use document ID hash or construct a stable numeric ID
-                            val uniqueId = doc.id.hashCode().toLong()
+                            val canonicalDocId = "w${week}_g${gameId}_p${playerId}"
+                            val uniqueId = canonicalDocId.hashCode().toLong()
 
                             SpreadPick(
                                 id = uniqueId,
                                 gameId = gameId,
                                 playerId = playerId,
                                 weekNumber = week,
-                                pickedTeamShort = team
+                                pickedTeamShort = team,
+                                timestamp = doc.getLong("timestamp") ?: 0L,
+                                firstPickTeamShort = doc.getString("firstPickTeamShort") ?: team
                             )
                         } catch (e: Exception) {
                             Log.e("FirestoreSync", "Failed to parse pick doc: ${doc.id}", e)
@@ -242,6 +250,7 @@ class FirestoreSyncService(context: Context) {
             }
         awaitClose { registration.remove() }
     }.distinctUntilChanged()
+
     fun observeCloudGames(): Flow<List<NflGame>> = callbackFlow {
         val registration = db.collection("games")
             .addSnapshotListener { snapshot, error ->
@@ -250,7 +259,7 @@ class FirestoreSyncService(context: Context) {
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null) {
+                if (snapshot != null && !snapshot.metadata.hasPendingWrites()) {
                     val list = snapshot.documents.mapNotNull { doc ->
                         try {
                             val id = (doc.get("id") as? Number)?.toLong()
@@ -258,6 +267,7 @@ class FirestoreSyncService(context: Context) {
                                 ?: doc.id.toLongOrNull()
                                 ?: return@mapNotNull null
                             val weekNumber = (doc.get("weekNumber") as? Number)?.toInt() ?: 1
+                            val seasonYear = (doc.get("seasonYear") as? Number)?.toInt() ?: 2026
                             val awayTeamShort = doc.getString("awayTeamShort") ?: ""
                             val awayTeam = doc.getString("awayTeam") ?: ""
                             val homeTeamShort = doc.getString("homeTeamShort") ?: ""
@@ -275,6 +285,7 @@ class FirestoreSyncService(context: Context) {
                             NflGame(
                                 id = id,
                                 weekNumber = weekNumber,
+                                seasonYear = seasonYear,
                                 awayTeamShort = awayTeamShort,
                                 awayTeam = awayTeam,
                                 homeTeamShort = homeTeamShort,
