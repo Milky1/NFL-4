@@ -14,7 +14,7 @@ data class PlayerRecord(
     val currentStreak: String = "-",
     val longestWinStreak: Int = 0,
     val favoriteTeam: String = "-",
-    val favoritePickRate: Float = 0f, // percentage of time picking favorites
+    val favoritePickRate: Float = 0f,
     val underdogPickRate: Float = 0f,
     val totalEarningsEuros: Int = 0
 ) {
@@ -63,40 +63,6 @@ data class WeeklyPrizeInfo(
         } else {
             "€$totalPot Prize"
         }
-}
-
-data class HeadToHeadRecord(
-    val playerA: Player,
-    val playerB: Player,
-    val totalOppositePicks: Int,
-    val playerAWins: Int,
-    val playerBWins: Int,
-    val pushes: Int
-)
-
-data class WeeklyTrendPoint(
-    val weekNumber: Int,
-    val winPct: Float,
-    val wins: Int,
-    val losses: Int,
-    val cumulativeWinPct: Float = 0f,
-    val cumulativeWins: Int = 0,
-    val cumulativeLosses: Int = 0
-)
-
-data class TeamPickStat(
-    val teamCode: String,
-    val timesPicked: Int,
-    val totalPlayerPicks: Int,
-    val pickPercentage: Float,
-    val wins: Int,
-    val losses: Int,
-    val pushes: Int,
-    val winPercentage: Float
-) {
-    val formattedPickPct: String get() = "%.1f%%".format(pickPercentage)
-    val formattedWinPct: String get() = "%.1f%%".format(winPercentage)
-    val formattedRecord: String get() = "$wins-$losses" + if (pushes > 0) "-$pushes" else ""
 }
 
 object StatsCalculator {
@@ -203,10 +169,9 @@ object StatsCalculator {
 
         for (summary in sorted) {
             val totalPot = 5 + accumulatedRollover
-            val hasResults = summary.playerResults.any { it.wins > 0 || it.losses > 0 }
+            val hasResults = summary.isCompleted || summary.playerResults.any { it.wins > 0 || it.losses > 0 }
 
             if (!hasResults) {
-                // Future / active open week (e.g. Week 9)
                 result[summary.weekNumber] = WeeklyPrizeInfo(
                     weekNumber = summary.weekNumber,
                     basePrize = 5,
@@ -217,7 +182,6 @@ object StatsCalculator {
                     payoutAmount = 0
                 )
             } else if (summary.winners.size == 1) {
-                // Outright Winner takes the pot!
                 val winner = summary.winners.first()
                 result[summary.weekNumber] = WeeklyPrizeInfo(
                     weekNumber = summary.weekNumber,
@@ -230,7 +194,6 @@ object StatsCalculator {
                 )
                 accumulatedRollover = 0
             } else if (summary.winners.size > 1) {
-                // Draw! €5 rolls over to next week (= €10, etc.)
                 result[summary.weekNumber] = WeeklyPrizeInfo(
                     weekNumber = summary.weekNumber,
                     basePrize = 5,
@@ -271,7 +234,6 @@ object StatsCalculator {
             var pushes = 0
             var weeklyWinCount = 0
 
-            // Count weekly championship crowns (only on weeks where games have concluded)
             for (summary in weeklySummaries) {
                 if (summary.winners.any { it.id == player.id } && summary.playerResults.any { it.totalDecided > 0 }) {
                     weeklyWinCount++
@@ -282,7 +244,6 @@ object StatsCalculator {
                 .filter { it.outrightWinner?.id == player.id }
                 .sumOf { it.payoutAmount }
 
-            // Streak tracking
             var currentStreakCount = 0
             var currentStreakType = ""
             var maxWinStreak = 0
@@ -299,8 +260,6 @@ object StatsCalculator {
                 val game = gamesMap[pick.gameId] ?: continue
                 teamPickCounts[pick.pickedTeamShort] = (teamPickCounts[pick.pickedTeamShort] ?: 0) + 1
 
-                // Is picked team favorite or underdog?
-                // Home spread: if homeSpread < 0, Home is favorite. Away is underdog.
                 val isHomeFav = game.homeSpread < 0
                 val pickedHome = pick.pickedTeamShort.equals(game.homeTeamShort, ignoreCase = true)
                 if ((pickedHome && isHomeFav) || (!pickedHome && !isHomeFav)) {
@@ -329,7 +288,6 @@ object StatsCalculator {
                     }
                     PickOutcome.PUSH -> {
                         pushes++
-                        // push does not break or add to win streak
                     }
                     else -> {}
                 }
@@ -340,7 +298,6 @@ object StatsCalculator {
             val dogRate = if (totalPicksRecorded > 0) (underdogPicks.toFloat() / totalPicksRecorded) * 100f else 50f
 
             val mostPickedTeam = teamPickCounts.maxByOrNull { it.value }?.key ?: "-"
-
             val streakString = if (currentStreakCount > 0) "$currentStreakCount$currentStreakType" else "-"
 
             PlayerRecord(
@@ -360,147 +317,6 @@ object StatsCalculator {
             compareByDescending<PlayerRecord> { it.winPercentage }
                 .thenByDescending { it.wins }
                 .thenByDescending { it.weeklyWins }
-        )
-    }
-
-    fun calculateWeeklyTrends(
-        playerId: Long,
-        games: List<NflGame>,
-        picks: List<SpreadPick>
-    ): List<WeeklyTrendPoint> {
-        val weekNumbers = games.map { it.weekNumber }.distinct().sorted()
-        val gamesMap = games.associateBy { it.id }
-        val playerPicks = picks.filter { it.playerId == playerId }
-
-        val trends = mutableListOf<WeeklyTrendPoint>()
-        var cumWins = 0
-        var cumLosses = 0
-
-        for (week in weekNumbers) {
-            val weekGames = games.filter { it.weekNumber == week && it.isFinal }
-            if (weekGames.isEmpty()) continue
-
-            val weekPicks = playerPicks.filter { it.weekNumber == week }
-            var w = 0
-            var l = 0
-
-            for (game in weekGames) {
-                val pick = weekPicks.find { it.gameId == game.id }
-                when (evaluatePick(game, pick)) {
-                    PickOutcome.WIN -> w++
-                    PickOutcome.LOSS -> l++
-                    else -> {}
-                }
-            }
-
-            cumWins += w
-            cumLosses += l
-            val pct = if (w + l > 0) (w.toFloat() / (w + l).toFloat()) * 100f else 0f
-            val cumPct = if (cumWins + cumLosses > 0) (cumWins.toFloat() / (cumWins + cumLosses).toFloat()) * 100f else 0f
-            trends.add(
-                WeeklyTrendPoint(
-                    weekNumber = week,
-                    winPct = pct,
-                    wins = w,
-                    losses = l,
-                    cumulativeWinPct = cumPct,
-                    cumulativeWins = cumWins,
-                    cumulativeLosses = cumLosses
-                )
-            )
-        }
-
-        return trends
-    }
-
-    fun calculateTeamPickStats(
-        playerId: Long,
-        games: List<NflGame>,
-        picks: List<SpreadPick>
-    ): List<TeamPickStat> {
-        val playerPicks = picks.filter { it.playerId == playerId }
-        val totalPlayerPicks = playerPicks.size
-        if (totalPlayerPicks == 0) return emptyList()
-
-        val gamesMap = games.associateBy { it.id }
-        val picksByTeam = playerPicks.groupBy { it.pickedTeamShort.uppercase() }
-
-        return picksByTeam.map { (teamCode, teamPicks) ->
-            var wins = 0
-            var losses = 0
-            var pushes = 0
-
-            for (pick in teamPicks) {
-                val game = gamesMap[pick.gameId] ?: continue
-                if (!game.isFinal) continue
-                when (evaluatePick(game, pick)) {
-                    PickOutcome.WIN -> wins++
-                    PickOutcome.LOSS -> losses++
-                    PickOutcome.PUSH -> pushes++
-                    else -> {}
-                }
-            }
-
-            val decided = wins + losses
-            val winPct = if (decided > 0) (wins.toFloat() / decided.toFloat()) * 100f else 0f
-            val pickPct = (teamPicks.size.toFloat() / totalPlayerPicks.toFloat()) * 100f
-
-            TeamPickStat(
-                teamCode = teamCode,
-                timesPicked = teamPicks.size,
-                totalPlayerPicks = totalPlayerPicks,
-                pickPercentage = pickPct,
-                wins = wins,
-                losses = losses,
-                pushes = pushes,
-                winPercentage = winPct
-            )
-        }.sortedWith(
-            compareByDescending<TeamPickStat> { it.timesPicked }
-                .thenByDescending { it.winPercentage }
-                .thenBy { it.teamCode }
-        )
-    }
-
-    fun calculateHeadToHead(
-        playerA: Player,
-        playerB: Player,
-        games: List<NflGame>,
-        picks: List<SpreadPick>
-    ): HeadToHeadRecord {
-        val gamesMap = games.associateBy { it.id }
-        var oppositeCount = 0
-        var aWins = 0
-        var bWins = 0
-        var pushes = 0
-
-        val picksA = picks.filter { it.playerId == playerA.id }.associateBy { it.gameId }
-        val picksB = picks.filter { it.playerId == playerB.id }.associateBy { it.gameId }
-
-        for ((gameId, pickA) in picksA) {
-            val pickB = picksB[gameId] ?: continue
-            val game = gamesMap[gameId] ?: continue
-            if (!game.isFinal) continue
-
-            // Only compare when they disagreed!
-            if (!pickA.pickedTeamShort.equals(pickB.pickedTeamShort, ignoreCase = true)) {
-                oppositeCount++
-                val outA = evaluatePick(game, pickA)
-                val outB = evaluatePick(game, pickB)
-
-                if (outA == PickOutcome.WIN) aWins++
-                else if (outB == PickOutcome.WIN) bWins++
-                else pushes++
-            }
-        }
-
-        return HeadToHeadRecord(
-            playerA = playerA,
-            playerB = playerB,
-            totalOppositePicks = oppositeCount,
-            playerAWins = aWins,
-            playerBWins = bWins,
-            pushes = pushes
         )
     }
 }

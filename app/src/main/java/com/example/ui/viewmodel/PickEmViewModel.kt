@@ -17,12 +17,9 @@ import com.example.data.model.WeekSpreadLockStatus
 import com.example.data.repository.PickEmRepository
 import com.example.data.repository.SpreadsheetExportImport
 import com.example.data.repository.WebSyncService
-import com.example.data.stats.HeadToHeadRecord
 import com.example.data.stats.PlayerRecord
 import com.example.data.stats.StatsCalculator
-import com.example.data.stats.TeamPickStat
 import com.example.data.stats.WeeklyPrizeInfo
-import com.example.data.stats.WeeklyTrendPoint
 import com.example.data.stats.WeeklyWinnerSummary
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
@@ -183,20 +180,6 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         else StatsCalculator.calculateOverallLeaderboard(games, playerList, picks)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Derived: Head-to-Head matchups
-    val headToHeadList: StateFlow<List<HeadToHeadRecord>> = combine(
-        allGames,
-        players,
-        allPicks
-    ) { games, playerList, picks ->
-        val results = mutableListOf<HeadToHeadRecord>()
-        for (i in playerList.indices) {
-            for (j in (i + 1) until playerList.size) {
-                results.add(StatsCalculator.calculateHeadToHead(playerList[i], playerList[j], games, picks))
-            }
-        }
-        results
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -592,13 +575,6 @@ class PickEmViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun getPlayerTrends(playerId: Long): List<WeeklyTrendPoint> {
-        return StatsCalculator.calculateWeeklyTrends(playerId, allGames.value, allPicks.value)
-    }
-
-    fun getPlayerTeamPickStats(playerId: Long): List<TeamPickStat> {
-        return StatsCalculator.calculateTeamPickStats(playerId, allGames.value, allPicks.value)
-    }
 
     fun exportCsv(): String {
         return SpreadsheetExportImport.exportToCsv(allGames.value, players.value, allPicks.value)

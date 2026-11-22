@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import com.example.data.model.NflGame
+import com.example.data.model.SpreadPick
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -56,10 +58,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.stats.HeadToHeadRecord
 import com.example.data.stats.PlayerRecord
-import com.example.data.stats.TeamPickStat
-import com.example.data.stats.WeeklyTrendPoint
+import com.example.data.stats.WeeklyWinnerSummary
 import com.example.ui.theme.StadiumGold
 import com.example.ui.theme.StadiumGoldLight
 import com.example.ui.theme.StadiumNavy900
@@ -93,11 +93,11 @@ data class YearlySpreadsheetRow(
 @Composable
 fun HistoricalStatsScreen(
     leaderboard: List<PlayerRecord>,
-    headToHeadList: List<HeadToHeadRecord> = emptyList(),
-    getTrendsForPlayer: (Long) -> List<WeeklyTrendPoint> = { emptyList() },
-    getTeamPickStatsForPlayer: (Long) -> List<TeamPickStat> = { emptyList() },
+    weeklySummaries: List<WeeklyWinnerSummary> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val players = remember(leaderboard) { leaderboard.map { it.player } }
+    // ... existing code ...
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("yearly_totals_overrides_v1", Context.MODE_PRIVATE) }
 
@@ -200,9 +200,13 @@ fun HistoricalStatsScreen(
         // ==================== CASH MOVEMENT DASHBOARD (ABOVE YEARLY TOTAL SPREADSHEET) ====================
         item {
             Spacer(modifier = Modifier.height(6.dp))
-            WeeklyCashDashboard()
+            WeeklyCashDashboard(
+                weeklySummaries = weeklySummaries,
+                players = players
+            )
             Spacer(modifier = Modifier.height(10.dp))
         }
+
 
         item {
             Spacer(modifier = Modifier.height(4.dp))

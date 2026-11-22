@@ -104,7 +104,6 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
     val currentWeeklySummary by viewModel.currentWeeklySummary.collectAsStateWithLifecycle()
     val allWeeklySummaries by viewModel.allWeeklySummaries.collectAsStateWithLifecycle()
     val overallLeaderboard by viewModel.overallLeaderboard.collectAsStateWithLifecycle()
-    val headToHeadList by viewModel.headToHeadList.collectAsStateWithLifecycle()
     val lockStatus by viewModel.currentWeekLockStatus.collectAsStateWithLifecycle()
     val allWeeklyPrizes by viewModel.allWeeklyPrizes.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
@@ -275,9 +274,7 @@ fun MainApp(viewModel: PickEmViewModel = viewModel()) {
                 AppTab.STATS -> {
                     HistoricalStatsScreen(
                         leaderboard = overallLeaderboard,
-                        headToHeadList = headToHeadList,
-                        getTrendsForPlayer = { playerId -> viewModel.getPlayerTrends(playerId) },
-                        getTeamPickStatsForPlayer = { playerId -> viewModel.getPlayerTeamPickStats(playerId) }
+                        weeklySummaries = allWeeklySummaries
                     )
                 }
 
